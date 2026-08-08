@@ -400,7 +400,20 @@
     background: #000;
     box-shadow: var(--shadow);
   }
-  .np-art #player { width: 100%; height: 100%; }
+  #playerDock {
+    position: fixed;
+    top: -9999px;
+    left: -9999px;
+    width: 320px;
+    height: 180px;
+    background: #000;
+    overflow: hidden;
+    border-radius: 16px;
+    z-index: 25;
+    pointer-events: none;
+  }
+  #playerDock.docked { pointer-events: auto; }
+  #playerDock #player, #playerDock iframe { width: 100%; height: 100%; display: block; border: 0; }
   .np-meta { text-align: center; margin: 0 0 18px; }
   .np-title { font-size: 20px; font-weight: 700; color: var(--text); }
   .np-artist { font-size: 15px; color: var(--text-secondary); margin-top: 2px; }
@@ -983,7 +996,7 @@
         <h1>Now Playing</h1>
       </div>
 
-      <div class="np-art"><div id="player"></div></div>
+      <div class="np-art" id="npArtSlot"></div>
 
       <div class="np-meta">
         <div class="np-title" id="nowLabel">&mdash;</div>
@@ -1027,6 +1040,14 @@
   </div>
 
 </div>
+
+<!-- ============ PERSISTENT PLAYER DOCK ============
+     Lives outside every route/screen and is created once for the whole session so
+     playback is never interrupted by tab or playlist navigation. Visually it's
+     repositioned on top of the Now Playing screen's art slot when that screen is
+     active, and moved off-screen (kept a real, non-zero size — never display:none)
+     otherwise, since hiding the iframe that way can pause YouTube playback. -->
+<div id="playerDock"><div id="player"></div></div>
 
 <!-- ============ MINI PLAYER ============ -->
 <div class="mini-player" id="miniPlayer" hidden>
@@ -1104,11 +1125,11 @@
       <div class="field-row">
         <div class="field">
           <label for="startInput">Start</label>
-          <input type="text" id="startInput" placeholder="0:00" autocomplete="off">
+          <input type="text" id="startInput" placeholder="0:00 (default)" autocomplete="off">
         </div>
         <div class="field">
           <label for="endInput">End</label>
-          <input type="text" id="endInput" placeholder="1:30" autocomplete="off">
+          <input type="text" id="endInput" placeholder="Full video (default)" autocomplete="off">
         </div>
       </div>
       <button type="submit" class="primary-btn" id="addBtn">Add to Queue</button>
@@ -1183,6 +1204,9 @@
   </div>
 </div>
 
+<!-- ============ hidden host for throwaway duration-probe players ============ -->
+<div id="tempPlayerHost" style="position:fixed; top:-9999px; left:-9999px; width:200px; height:200px; overflow:hidden; pointer-events:none;"></div>
+
 <!-- ============ ACTION SHEET (clip row actions + playlist actions + library row actions) ============ -->
 <div class="sheet-backdrop" id="actionBackdrop"></div>
 <div class="sheet" id="actionSheet">
@@ -1212,6 +1236,7 @@
   let libraryClips = [];       // { id, name, artist, videoId, start, end, lastUsedAt } — all clip_library rows
   let queue = clips;           // whichever list is actually loaded for playback right now
   let queueSource = "playlist"; // "playlist" | "library"
+  let queuePlaylistId = null;  // when queueSource === "playlist", the playlist id `queue` was loaded from
   let currentId = null;        // id of the clip currently loaded in the player
   let currentLibrarySearch = "";
   let addClipContext = "playlist"; // "playlist" | "library" — which flow the Add Clip sheet is serving
@@ -1303,6 +1328,71 @@
     return data.title || "";
   }
 
+  let ytApiReadyPromise = null;
+  function waitForYTApiReady() {
+    if (apiReady) return Promise.resolve();
+    if (!ytApiReadyPromise) {
+      ytApiReadyPromise = new Promise((resolve) => {
+        (function check() {
+          if (apiReady) resolve();
+          else setTimeout(check, 50);
+        })();
+      });
+    }
+    return ytApiReadyPromise;
+  }
+
+  // Briefly loads a video in a hidden, throwaway YT.Player instance just to read its
+  // full duration (no Data API key needed), then tears the instance down.
+  function fetchVideoDuration(videoId, timeoutMs) {
+    timeoutMs = timeoutMs || 12000;
+    return waitForYTApiReady().then(() => new Promise((resolve, reject) => {
+      const host = document.getElementById("tempPlayerHost");
+      const el = document.createElement("div");
+      host.appendChild(el);
+      let settled = false;
+      let probePlayer = null;
+
+      // YT.Player replaces its target element with the actual <iframe> in place, so
+      // `el` itself may already be detached by the time we clean up — clear the whole
+      // (dedicated, single-purpose) host container rather than trying to remove `el`.
+      const cleanup = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { if (probePlayer && probePlayer.destroy) probePlayer.destroy(); } catch (err) {}
+        host.replaceChildren();
+      };
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error("timed out fetching video duration"));
+      }, timeoutMs);
+
+      try {
+        probePlayer = new YT.Player(el, {
+          videoId,
+          playerVars: { autoplay: 0, controls: 0 },
+          events: {
+            onReady: () => {
+              const duration = probePlayer.getDuration();
+              cleanup();
+              if (duration && duration > 0) resolve(duration);
+              else reject(new Error("could not determine video duration"));
+            },
+            onError: () => {
+              cleanup();
+              reject(new Error("failed to load video"));
+            }
+          }
+        });
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    }));
+  }
+
   function rowToClip(row) {
     return {
       id: row.id,
@@ -1373,8 +1463,37 @@
     document.getElementById("screen-nowplaying").classList.toggle("active", tab === "nowplaying");
     syncNavActiveStates();
     updateMiniPlayerVisibility();
+    positionPlayerDock();
     if (tab === "library") openLibraryPage();
   }
+
+  // ---------- persistent player dock ----------
+  // Keeps the actual YT.Player iframe mounted for the whole session — never destroyed
+  // or recreated on navigation. Only its visual position changes.
+
+  function positionPlayerDock() {
+    const dock = document.getElementById("playerDock");
+    const slot = document.getElementById("npArtSlot");
+    if (activeTab === "nowplaying" && slot) {
+      const rect = slot.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        dock.style.top = rect.top + "px";
+        dock.style.left = rect.left + "px";
+        dock.style.width = rect.width + "px";
+        dock.style.height = rect.height + "px";
+        dock.classList.add("docked");
+        return;
+      }
+    }
+    dock.classList.remove("docked");
+    dock.style.top = "-9999px";
+    dock.style.left = "-9999px";
+    dock.style.width = "320px";
+    dock.style.height = "180px";
+  }
+
+  window.addEventListener("resize", positionPlayerDock);
+  window.addEventListener("scroll", positionPlayerDock, true);
 
   document.getElementById("tabPlaylists").addEventListener("click", () => switchTab("playlists"));
   document.getElementById("tabLibrary").addEventListener("click", () => switchTab("library"));
@@ -1644,27 +1763,39 @@
     if (!playlistId || playlistId === currentPlaylistId) return;
     currentPlaylistId = playlistId;
     localStorage.setItem(LS_KEY, playlistId);
-    currentId = null;
-    document.getElementById("statusLabel").textContent = "loading clips…";
 
     await loadClipsForCurrentPlaylist();
-    queue = clips;
-    queueSource = "playlist";
-    if (clips.length > 0) currentId = clips[0].id;
-    if (shuffleOn) regenerateShuffleOrder();
 
-    if (player) {
-      if (clips.length > 0) {
-        const c = clips[0];
-        player.loadVideoById({ videoId: c.videoId, startSeconds: c.start });
-        player.pauseVideo();
-        document.getElementById("statusLabel").textContent = "ready — press play";
+    // loadClipsForCurrentPlaylist() always replaces `clips` with a fresh array. If that's
+    // the same playlist actively playing, keep `queue` pointed at the live rows (by id,
+    // not stale objects) without touching currentId or the player.
+    if (queueSource === "playlist" && queuePlaylistId === currentPlaylistId) {
+      queue = clips;
+    }
+
+    // Switching which playlist is being *browsed* must never touch active playback —
+    // only prime the player from this playlist if nothing has ever been loaded yet.
+    const playbackActive = currentId !== null;
+    if (!playbackActive) {
+      queue = clips;
+      queueSource = "playlist";
+      queuePlaylistId = currentPlaylistId;
+      if (clips.length > 0) currentId = clips[0].id;
+      if (shuffleOn) regenerateShuffleOrder();
+
+      if (player) {
+        if (clips.length > 0) {
+          const c = clips[0];
+          player.loadVideoById({ videoId: c.videoId, startSeconds: c.start });
+          player.pauseVideo();
+          document.getElementById("statusLabel").textContent = "ready — press play";
+        } else {
+          stopAndClearPlayer();
+        }
       } else {
-        stopAndClearPlayer();
+        maybeInitPlayer();
+        if (clips.length === 0) document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
       }
-    } else {
-      maybeInitPlayer();
-      if (clips.length === 0) document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
     }
 
     refreshPlaylistUI();
@@ -1710,6 +1841,7 @@
     if (queueSource !== "playlist" || queue !== clips) {
       queue = clips;
       queueSource = "playlist";
+      queuePlaylistId = currentPlaylistId;
       if (shuffleOn) regenerateShuffleOrder();
     }
     loadClipById(id, autoplay);
@@ -2017,6 +2149,7 @@
       if (!currentId) {
         queue = clips;
         queueSource = "playlist";
+        queuePlaylistId = currentPlaylistId;
         currentId = data.id;
       }
       maybeInitPlayer();
@@ -2291,14 +2424,41 @@
       statusEl.textContent = "couldn't find a video id in that link";
       return;
     }
-    const start = parseTimeToSeconds(startInput.value);
-    const end = parseTimeToSeconds(endInput.value);
-    if (isNaN(start) || isNaN(end)) {
+    const startRaw = startInput.value.trim();
+    const endRaw = endInput.value.trim();
+
+    const start = startRaw ? parseTimeToSeconds(startRaw) : 0;
+    if (isNaN(start)) {
       statusEl.className = "status-line error";
-      statusEl.textContent = "start/end must be seconds or m:ss";
+      statusEl.textContent = "start must be seconds or m:ss";
       return;
     }
+
+    let end;
+    if (endRaw) {
+      end = parseTimeToSeconds(endRaw);
+      if (isNaN(end)) {
+        statusEl.className = "status-line error";
+        statusEl.textContent = "end must be seconds or m:ss";
+        return;
+      }
+    } else {
+      addBtn.disabled = true;
+      statusEl.className = "status-line";
+      statusEl.textContent = "detecting video length…";
+      try {
+        end = await fetchVideoDuration(videoId);
+      } catch (err) {
+        console.warn("Failed to fetch video duration", err);
+        addBtn.disabled = false;
+        statusEl.className = "status-line error";
+        statusEl.textContent = "couldn't detect video length — enter start/end manually";
+        return;
+      }
+    }
+
     if (!(start < end)) {
+      addBtn.disabled = false;
       statusEl.className = "status-line error";
       statusEl.textContent = "start must be before end";
       return;
@@ -2386,6 +2546,7 @@
     if (!currentId) {
       queue = clips;
       queueSource = "playlist";
+      queuePlaylistId = currentPlaylistId;
       currentId = data.id;
     }
     statusEl.className = "status-line ok";
@@ -2686,6 +2847,7 @@
     await loadClipsForCurrentPlaylist();
     queue = clips;
     queueSource = "playlist";
+    queuePlaylistId = currentPlaylistId;
     if (clips.length > 0) currentId = clips[0].id;
     if (shuffleOn) regenerateShuffleOrder();
     dataReady = true;
