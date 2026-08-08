@@ -2,542 +2,702 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Clip Playlist</title>
 <style>
   :root {
-    --bg: #14120f;
-    --panel: #1c1a16;
-    --line: #33302a;
-    --amber: #e8a63c;
-    --amber-dim: #7a5a26;
-    --danger: #b5533f;
-    --text: #ece7dc;
-    --text-dim: #9a958a;
+    --bg: #F2F2F7;
+    --row: #FFFFFF;
+    --track: rgba(118, 118, 128, 0.12);
+    --text: #000000;
+    --text-secondary: #8E8E93;
+    --accent: #FF9F0A;
+    --danger: #FF3B30;
+    --tab-bg: #FFFFFF;
+    --hairline: rgba(0, 0, 0, 0.15);
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   }
-  * { box-sizing: border-box; }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --row: #1C1C1E;
+      --track: rgba(118, 118, 128, 0.24);
+      --text: #FFFFFF;
+      --text-secondary: #8E8E93;
+      --accent: #FF9F0A;
+      --danger: #FF3B30;
+      --tab-bg: #1C1C1E;
+      --hairline: rgba(255, 255, 255, 0.15);
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
   body {
-    margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: "Courier New", ui-monospace, monospace;
-    display: flex;
-    justify-content: center;
-    padding: 40px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .deck {
-    width: 100%;
-    max-width: 560px;
+  button, input { font-family: inherit; }
+  button { -webkit-appearance: none; }
+  img { display: block; }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg);
+    position: relative;
   }
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    border-bottom: 1px solid var(--line);
-    padding-bottom: 12px;
-    margin-bottom: 20px;
+
+  /* ---------- screens ---------- */
+  .screen {
+    display: none;
+    padding: 0 16px 150px;
+    animation: fade-in 180ms ease-out;
   }
-  .header h1 {
-    font-size: 15px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin: 0;
-    color: var(--amber);
-    font-weight: normal;
-  }
-  .header .count {
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-  .playlist-bar {
+  .screen.active { display: block; }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  .nav-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
+    justify-content: space-between;
+    padding: 20px 0 14px;
   }
-  .playlist-select {
-    flex: 1;
-    min-width: 0;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 7px 8px;
+  .nav-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
   }
-  .playlist-select:focus { outline: none; border-color: var(--amber-dim); }
-  .playlist-bar button {
-    background: none;
-    border: 1px solid var(--line);
-    color: var(--text-dim);
-    font-family: inherit;
-    font-size: 14px;
-    width: 30px;
-    height: 30px;
+  .nav-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--row);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
+    box-shadow: var(--shadow);
+    transition: transform 100ms ease-out;
   }
-  .playlist-bar button:hover { border-color: var(--amber-dim); color: var(--amber); }
-  .new-playlist-form {
-    display: flex;
-    gap: 8px;
-    margin: -12px 0 20px;
-  }
-  .new-playlist-form[hidden] { display: none; }
-  .new-playlist-form input {
-    flex: 1;
-    min-width: 0;
-    background: var(--panel);
-    border: 1px solid var(--amber-dim);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 7px 8px;
-  }
-  .new-playlist-form input:focus { outline: none; }
-  .new-playlist-form button {
-    background: none;
-    border: 1px solid var(--amber-dim);
-    color: var(--amber);
-    font-family: inherit;
-    font-size: 11px;
+  .nav-action:active { transform: scale(0.94); }
+
+  .section-label {
+    font-size: 15px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0 12px;
-    cursor: pointer;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+    margin: 20px 0 8px;
   }
-  .new-playlist-form button:hover { background: var(--amber-dim); color: var(--bg); }
-  .video-wrap {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: #000;
-    margin-bottom: 16px;
-    border: 1px solid var(--line);
-  }
-  #player { width: 100%; height: 100%; }
-  .now-playing {
+
+  /* ---------- playlist switcher ---------- */
+  .switcher-row-wrap { display: flex; align-items: center; gap: 8px; padding: 2px 0 18px; }
+  .segmented {
+    flex: 1;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: 2px;
+    background: var(--track);
+    border-radius: 10px;
+    padding: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .segmented::-webkit-scrollbar { display: none; }
+  .segment {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
     font-size: 13px;
-    color: var(--text-dim);
-    margin-bottom: 10px;
-  }
-  .now-playing .label { color: var(--amber); }
-  .clip-progress {
-    width: 100%;
-    height: 3px;
-    background: var(--line);
-    margin-bottom: 20px;
-    position: relative;
+    font-weight: 500;
+    padding: 7px 10px;
+    border-radius: 8px;
     cursor: pointer;
+    white-space: nowrap;
+    transition: background 150ms, color 150ms, transform 100ms ease-out;
   }
-  .clip-progress-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--amber);
-  }
-  .controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 18px;
-    margin-bottom: 28px;
-  }
-  .controls button {
-    background: none;
-    border: 1px solid var(--line);
+  .segment.active {
+    background: var(--row);
     color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+  .segment:active { transform: scale(0.97); }
+  .circle-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: var(--row);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: var(--shadow);
+    transition: transform 100ms ease-out;
+  }
+  .circle-btn:active { transform: scale(0.94); }
+
+  .switcher-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: var(--row);
+    border: none;
+    border-radius: 12px;
+    padding: 13px 14px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 100ms ease-out;
+  }
+  .switcher-row:active { transform: scale(0.98); }
+  .switcher-row .chev { color: var(--text-secondary); flex-shrink: 0; }
+
+  /* ---------- list rows ---------- */
+  .list-meta { font-size: 13px; color: var(--text-secondary); margin: -8px 0 4px; }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 2px;
+    cursor: pointer;
+    transition: transform 100ms ease-out;
+  }
+  .row:active { transform: scale(0.99); }
+  .row.drag-over { box-shadow: inset 0 2px 0 var(--accent); }
+  .row.dragging { opacity: 0.4; }
+  .row .grip {
+    color: var(--text-secondary);
+    cursor: grab;
+    flex-shrink: 0;
+    touch-action: none;
+    opacity: 0.6;
+  }
+  .row .thumb {
     width: 44px;
     height: 44px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .controls button:hover { border-color: var(--amber-dim); color: var(--amber); }
-  .controls button.play {
-    width: 56px;
-    height: 56px;
-    border-color: var(--amber-dim);
-    font-size: 18px;
-  }
-  .toggle-row {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-bottom: 28px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .toggle-row button {
-    background: none;
-    border: 1px solid var(--line);
-    color: var(--text-dim);
-    padding: 6px 12px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .toggle-row button.on { color: var(--amber); border-color: var(--amber-dim); }
-  .queue {
-    border-top: 1px solid var(--line);
-    padding-top: 16px;
-  }
-  .queue-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 6px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--line);
-  }
-  .queue-item.drag-over { border-top: 1px solid var(--amber); }
-  .queue-item.dragging { opacity: 0.4; }
-  .queue-item:hover { background: var(--panel); }
-  .queue-item .drag-handle {
-    color: var(--text-dim);
-    font-size: 13px;
-    cursor: grab;
-    line-height: 1;
-    padding: 4px 2px;
-    user-select: none;
-  }
-  .queue-item .drag-handle:hover { color: var(--amber); }
-  .queue-item .idx {
-    font-size: 11px;
-    color: var(--text-dim);
-    width: 16px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--track);
     flex-shrink: 0;
   }
-  .queue-item.active .idx { color: var(--amber); }
-  .queue-item .info { flex: 1; min-width: 0; }
-  .queue-item .name {
-    font-size: 13px;
+  .row .info { flex: 1; min-width: 0; }
+  .row .title {
+    font-size: 17px;
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .queue-item.active .name { color: var(--amber); }
-  .queue-item .range {
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
-  .queue-item .range .time-edit {
-    cursor: text;
-    border-bottom: 1px dotted var(--text-dim);
-  }
-  .queue-item .range .time-edit:hover { color: var(--amber); border-bottom-color: var(--amber-dim); }
-  .queue-item .range input.time-input {
-    width: 46px;
-    background: var(--bg);
-    border: 1px solid var(--amber-dim);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 11px;
-    padding: 1px 3px;
-  }
-  .queue-item .range input.time-input.invalid { border-color: var(--danger); color: var(--danger); }
-  .queue-item .dur {
-    font-size: 11px;
-    color: var(--text-dim);
-    flex-shrink: 0;
-  }
-  .queue-item .row-actions {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
-  }
-  .queue-item .row-actions button {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 12px;
-    padding: 4px 5px;
-    line-height: 1;
-  }
-  .queue-item .row-actions button:hover:not(:disabled) { color: var(--amber); }
-  .queue-item .row-actions button:disabled { opacity: 0.25; cursor: default; }
-  .queue-item .row-actions button.delete:hover:not(:disabled) { color: var(--danger); }
-  .empty-queue {
-    padding: 20px 6px;
-    font-size: 12px;
-    color: var(--text-dim);
-    text-align: center;
-  }
-  .add-clip {
-    border-top: 1px solid var(--line);
-    padding-top: 16px;
-    margin-top: 20px;
-  }
-  .add-clip-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-  .add-clip .section-label {
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--amber);
-    margin: 0;
-    font-weight: normal;
-  }
-  .library-link {
-    background: none;
-    border: 1px solid var(--line);
-    color: var(--text-dim);
-    font-family: inherit;
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 5px 10px;
-    cursor: pointer;
-  }
-  .library-link:hover { border-color: var(--amber-dim); color: var(--amber); }
-  .add-clip form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .add-clip .field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-  }
-  .add-clip .field label {
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-  .add-clip .field-row {
-    display: flex;
-    gap: 10px;
-  }
-  .add-clip input {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    color: var(--text);
-    font-family: inherit;
+  .row.active .title { color: var(--accent); }
+  .row .subtitle {
     font-size: 13px;
-    padding: 8px 9px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .add-clip input:focus { outline: none; border-color: var(--amber-dim); }
-  .add-clip button[type="submit"] {
-    background: none;
-    border: 1px solid var(--amber-dim);
-    color: var(--amber);
+  .row .subtitle .time-edit { border-bottom: 1px dotted currentColor; cursor: text; }
+  .row .subtitle .time-edit:hover { color: var(--accent); }
+  .row .subtitle input.time-input {
+    width: 44px;
+    background: var(--track);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    color: var(--text);
     font-family: inherit;
     font-size: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 10px 12px;
-    cursor: pointer;
+    padding: 1px 4px;
   }
-  .add-clip button[type="submit"]:hover:not(:disabled) { background: var(--amber-dim); color: var(--bg); }
-  .add-clip button[type="submit"]:disabled { opacity: 0.5; cursor: default; }
-  .add-status {
-    font-size: 11px;
-    color: var(--text-dim);
-    min-height: 14px;
-  }
-  .add-status.error { color: var(--danger); }
-  .add-status.ok { color: var(--amber); }
-  .status {
-    text-align: center;
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 20px;
-    letter-spacing: 0.06em;
-  }
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(10, 9, 7, 0.75);
+  .row .subtitle input.time-input.invalid { border-color: var(--danger); color: var(--danger); }
+  .row .trailing-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    z-index: 10;
-  }
-  .modal-overlay[hidden] { display: none; }
-  .modal {
-    width: 100%;
-    max-width: 480px;
-    max-height: 80vh;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    display: flex;
-    flex-direction: column;
-  }
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--line);
+    cursor: pointer;
     flex-shrink: 0;
   }
-  .modal-header .section-label { margin: 0; }
-  .modal-close {
-    background: none;
+  .row .trailing-btn:active { transform: scale(0.88); }
+  .row .add-check {
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 150ms;
+    flex-shrink: 0;
+    display: flex;
+  }
+  .row.added .add-check { opacity: 1; }
+
+  .empty-state {
+    padding: 56px 16px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 15px;
+  }
+
+  /* ---------- search field ---------- */
+  .search-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--track);
+    border-radius: 10px;
+    padding: 9px 10px;
+    margin: 2px 0 8px;
+  }
+  .search-field svg { color: var(--text-secondary); flex-shrink: 0; }
+  .search-field input {
     border: none;
-    color: var(--text-dim);
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+    flex: 1;
+    min-width: 0;
+  }
+  .search-field input:focus { outline: none; }
+  .search-field input::placeholder { color: var(--text-secondary); }
+
+  /* ---------- now playing ---------- */
+  .np-art {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 8px 0 18px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: var(--shadow);
+  }
+  .np-art #player { width: 100%; height: 100%; }
+  .np-meta { text-align: center; margin: 0 0 18px; }
+  .np-title { font-size: 20px; font-weight: 700; color: var(--text); }
+  .np-artist { font-size: 15px; color: var(--text-secondary); margin-top: 2px; }
+  .np-progress-track {
+    width: 100%;
+    height: 4px;
+    background: var(--track);
+    border-radius: 2px;
+    margin: 4px 0 6px;
+    cursor: pointer;
+    position: relative;
+  }
+  .np-progress-fill { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; }
+  .np-time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 26px;
+  }
+  .np-transport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 26px;
+  }
+  .np-transport button {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    transition: transform 100ms ease-out;
+  }
+  .np-transport button:active { transform: scale(0.9); }
+  .np-toggles { display: flex; justify-content: center; gap: 10px; margin-bottom: 8px; }
+  .pill-toggle {
+    border: 1px solid var(--track);
+    background: transparent;
+    color: var(--text-secondary);
     font-size: 13px;
+    font-weight: 500;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 100ms ease-out;
+  }
+  .pill-toggle.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .pill-toggle:active { transform: scale(0.96); }
+  .np-status { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 18px; }
+
+  /* ---------- mini player ---------- */
+  .mini-player {
+    position: fixed;
+    left: 50%;
+    bottom: 78px;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-width: 456px;
+    background: var(--row);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    border: 0.5px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    z-index: 20;
+    overflow: hidden;
+  }
+  .mini-player[hidden] { display: none; }
+  .mini-progress { position: absolute; top: 0; left: 0; height: 2px; background: var(--accent); width: 0%; }
+  .mini-player .thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--track); }
+  .mini-player .info { flex: 1; min-width: 0; }
+  .mini-player .title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mini-player button {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    flex-shrink: 0;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    transition: transform 100ms ease-out;
+  }
+  .mini-player button:active { transform: scale(0.88); }
+
+  /* ---------- tab bar ---------- */
+  .tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    background: var(--tab-bg);
+    border-top: 0.5px solid var(--hairline);
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+    z-index: 15;
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: transform 100ms ease-out;
+  }
+  .tab-item.active { color: var(--accent); }
+  .tab-item:active { transform: scale(0.95); }
+
+  /* ---------- sheets ---------- */
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 30;
+    opacity: 0;
+    transition: opacity 260ms ease;
+    pointer-events: none;
+  }
+  .sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translate(-50%, 100%);
+    width: 100%;
+    max-width: 480px;
+    max-height: 82vh;
+    background: var(--row);
+    border-radius: 16px 16px 0 0;
+    z-index: 31;
+    transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .sheet.open { transform: translate(-50%, 0); }
+  .sheet-grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--track); margin: 8px auto 4px; flex-shrink: 0; }
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px 12px;
+    flex-shrink: 0;
+  }
+  .sheet-header h2 { font-size: 17px; font-weight: 600; margin: 0; }
+  .sheet-header .text-btn {
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-size: 15px;
     cursor: pointer;
     padding: 4px;
   }
-  .modal-close:hover { color: var(--danger); }
-  .modal input.library-search {
-    margin: 12px 16px;
-    background: var(--bg);
-    border: 1px solid var(--line);
+  .sheet-body { overflow-y: auto; padding: 0 16px 20px; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .field label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+  .field input {
+    background: var(--track);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 12px;
+    font-size: 15px;
     color: var(--text);
-    font-family: inherit;
-    font-size: 13px;
-    padding: 8px 9px;
-    flex-shrink: 0;
   }
-  .modal input.library-search:focus { outline: none; border-color: var(--amber-dim); }
-  .library-list {
-    overflow-y: auto;
-    padding: 0 16px 16px;
-  }
-  .library-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 4px;
-    border-bottom: 1px solid var(--line);
+  .field input:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  .primary-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 14px;
     cursor: pointer;
+    margin-top: 4px;
+    transition: transform 100ms ease-out;
   }
-  .library-item:hover { background: var(--bg); }
-  .library-item:last-child { border-bottom: none; }
-  .library-item .info { flex: 1; min-width: 0; }
-  .library-item .name {
-    font-size: 13px;
+  .primary-btn:active { transform: scale(0.98); }
+  .primary-btn:disabled { opacity: 0.5; }
+  .status-line { font-size: 13px; color: var(--text-secondary); text-align: center; margin-top: 10px; min-height: 16px; }
+  .status-line.error { color: var(--danger); }
+  .status-line.ok { color: var(--accent); }
+
+  /* ---------- action sheet (row actions) ---------- */
+  .action-list { padding: 4px 16px 8px; }
+  .action-btn {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 0.5px solid var(--track);
+    padding: 15px 4px;
+    font-size: 17px;
     color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
-  .library-item .meta {
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-top: 2px;
-  }
-  .library-item .add-mark {
-    font-size: 11px;
-    color: var(--amber);
-    flex-shrink: 0;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  .library-item.added .add-mark { opacity: 1; }
-  .library-empty {
-    padding: 20px 6px;
-    font-size: 12px;
-    color: var(--text-dim);
-    text-align: center;
-  }
+  .action-btn:last-child { border-bottom: none; }
+  .action-btn.danger { color: var(--danger); }
+  .action-btn:disabled { opacity: 0.3; }
+  .action-btn:active:not(:disabled) { background: var(--track); }
 </style>
 </head>
 <body>
 
-<div class="deck">
-  <div class="header">
-    <h1>Clip playlist</h1>
-    <span class="count" id="countLabel">0 / 0</span>
-  </div>
+<div class="app">
 
-  <div class="playlist-bar">
-    <select id="playlistSelect" class="playlist-select"></select>
-    <button type="button" id="newPlaylistBtn" title="New playlist">+</button>
-  </div>
-  <form id="newPlaylistForm" class="new-playlist-form" hidden>
-    <input type="text" id="newPlaylistInput" placeholder="playlist name" autocomplete="off">
-    <button type="submit">Create</button>
-  </form>
-
-  <div class="video-wrap">
-    <div id="player"></div>
-  </div>
-
-  <div class="now-playing">
-    <span><span class="label">Now:</span> <span id="nowLabel">&mdash;</span></span>
-    <span id="timeLabel">0:00 / 0:00</span>
-  </div>
-
-  <div class="clip-progress" id="clipProgress">
-    <div class="clip-progress-fill" id="clipProgressFill"></div>
-  </div>
-
-  <div class="controls">
-    <button id="prevBtn" title="Previous clip">&#9664;&#9664;</button>
-    <button id="playBtn" class="play" title="Play/Pause">&#9654;</button>
-    <button id="nextBtn" title="Next clip">&#9654;&#9654;</button>
-  </div>
-
-  <div class="toggle-row">
-    <button id="autoBtn" class="on">Auto-advance: on</button>
-    <button id="loopBtn">Loop clip: off</button>
-  </div>
-
-  <div class="queue" id="queue"></div>
-
-  <div class="add-clip">
-    <div class="add-clip-head">
-      <h2 class="section-label">Add clip</h2>
-      <button type="button" id="openLibraryBtn" class="library-link">from library</button>
+  <!-- ============ PLAYLISTS SCREEN ============ -->
+  <section class="screen active" id="screen-playlists">
+    <div class="nav-header">
+      <h1>Playlists</h1>
+      <button class="nav-action" id="addClipBtn" title="Add clip">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>
-    <form id="addClipForm">
-      <div class="field">
-        <label for="urlInput">YouTube URL</label>
-        <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="startInput">Start</label>
-          <input type="text" id="startInput" placeholder="0:00" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="endInput">End</label>
-          <input type="text" id="endInput" placeholder="1:30" autocomplete="off">
-        </div>
-      </div>
-      <button type="submit" id="addBtn">+ Add to queue</button>
-      <div class="add-status" id="addStatus"></div>
-    </form>
+
+    <div class="switcher-row-wrap" id="switcherWrap"></div>
+
+    <div class="list-meta" id="countLabel"></div>
+    <div class="list" id="queueList"></div>
+  </section>
+
+  <!-- ============ NOW PLAYING SCREEN ============ -->
+  <section class="screen" id="screen-nowplaying">
+    <div class="nav-header">
+      <h1>Now Playing</h1>
+    </div>
+
+    <div class="np-art"><div id="player"></div></div>
+
+    <div class="np-meta">
+      <div class="np-title" id="nowLabel">&mdash;</div>
+      <div class="np-artist" id="nowArtistLabel">&nbsp;</div>
+    </div>
+
+    <div class="np-progress-track" id="clipProgress">
+      <div class="np-progress-fill" id="clipProgressFill"></div>
+    </div>
+    <div class="np-time-row">
+      <span id="elapsedLabel">0:00</span>
+      <span id="durationLabel">0:00</span>
+    </div>
+
+    <div class="np-transport">
+      <button id="prevBtn" title="Previous clip">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M11 6L4 12l7 6V6zM20 6l-7 6 7 6V6z"/></svg>
+      </button>
+      <button id="playBtn" title="Play/Pause">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button id="nextBtn" title="Next clip">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg>
+      </button>
+    </div>
+
+    <div class="np-toggles">
+      <button id="autoBtn" class="pill-toggle on">Auto-advance</button>
+      <button id="loopBtn" class="pill-toggle">Loop clip</button>
+    </div>
+
+    <div class="np-status" id="statusLabel">loading…</div>
+  </section>
+
+  <!-- ============ MINI PLAYER ============ -->
+  <div class="mini-player" id="miniPlayer" hidden>
+    <div class="mini-progress" id="miniProgressFill"></div>
+    <img class="thumb" id="miniThumb" alt="">
+    <div class="info">
+      <div class="title" id="miniTitle">&mdash;</div>
+    </div>
+    <button id="miniPlayBtn" title="Play/Pause">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" id="miniPlayIcon"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button id="miniNextBtn" title="Next clip">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg>
+    </button>
   </div>
 
-  <div class="status" id="statusLabel">loading...</div>
+  <!-- ============ TAB BAR ============ -->
+  <nav class="tab-bar">
+    <button class="tab-item active" id="tabPlaylists" data-tab="playlists">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      <span>Playlists</span>
+    </button>
+    <button class="tab-item" id="tabLibrary" data-tab="library">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      <span>Library</span>
+    </button>
+    <button class="tab-item" id="tabNowPlaying" data-tab="nowplaying">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12v0M8 8v8M12 5v14M16 8v8M20 12v0"/></svg>
+      <span>Now Playing</span>
+    </button>
+  </nav>
 
-  <div class="modal-overlay" id="libraryModal" hidden>
-    <div class="modal">
-      <div class="modal-header">
-        <h2 class="section-label">Clip library</h2>
-        <button type="button" class="modal-close" id="libraryCloseBtn" title="Close">&#10005;</button>
-      </div>
-      <input type="text" id="librarySearch" class="library-search" placeholder="search name or artist…" autocomplete="off">
-      <div class="library-list" id="libraryList"></div>
+  <!-- ============ ADD CLIP SHEET ============ -->
+  <div class="sheet-backdrop" id="addClipBackdrop"></div>
+  <div class="sheet" id="addClipSheet">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-header">
+      <h2>Add Clip</h2>
+      <button type="button" class="text-btn" id="addClipCancelBtn">Cancel</button>
+    </div>
+    <div class="sheet-body">
+      <form id="addClipForm">
+        <div class="field">
+          <label for="urlInput">YouTube URL</label>
+          <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="startInput">Start</label>
+            <input type="text" id="startInput" placeholder="0:00" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="endInput">End</label>
+            <input type="text" id="endInput" placeholder="1:30" autocomplete="off">
+          </div>
+        </div>
+        <button type="submit" class="primary-btn" id="addBtn">Add to Queue</button>
+        <div class="status-line" id="addStatus"></div>
+      </form>
     </div>
   </div>
+
+  <!-- ============ LIBRARY SHEET ============ -->
+  <div class="sheet-backdrop" id="libraryBackdrop"></div>
+  <div class="sheet" id="librarySheet">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-header">
+      <h2>Clip Library</h2>
+      <button type="button" class="text-btn" id="libraryCloseBtn">Done</button>
+    </div>
+    <div class="sheet-body">
+      <div class="search-field">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="librarySearch" placeholder="Search name or artist" autocomplete="off">
+      </div>
+      <div class="list" id="libraryList"></div>
+    </div>
+  </div>
+
+  <!-- ============ NEW PLAYLIST SHEET ============ -->
+  <div class="sheet-backdrop" id="newPlaylistBackdrop"></div>
+  <div class="sheet" id="newPlaylistSheet">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-header">
+      <h2>New Playlist</h2>
+      <button type="button" class="text-btn" id="newPlaylistCancelBtn">Cancel</button>
+    </div>
+    <div class="sheet-body">
+      <form id="newPlaylistForm">
+        <div class="field">
+          <label for="newPlaylistInput">Name</label>
+          <input type="text" id="newPlaylistInput" placeholder="Playlist name" autocomplete="off">
+        </div>
+        <button type="submit" class="primary-btn">Create</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ PLAYLIST PICKER SHEET (fallback for many playlists) ============ -->
+  <div class="sheet-backdrop" id="playlistPickerBackdrop"></div>
+  <div class="sheet" id="playlistPickerSheet">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-header">
+      <h2>Playlists</h2>
+      <button type="button" class="text-btn" id="playlistPickerCloseBtn">Done</button>
+    </div>
+    <div class="sheet-body">
+      <div class="list" id="playlistPickerList"></div>
+    </div>
+  </div>
+
+  <!-- ============ ROW ACTIONS SHEET ============ -->
+  <div class="sheet-backdrop" id="actionBackdrop"></div>
+  <div class="sheet" id="actionSheet">
+    <div class="sheet-grabber"></div>
+    <div class="sheet-header">
+      <h2 id="actionSheetTitle">Clip</h2>
+      <button type="button" class="text-btn" id="actionCancelBtn">Cancel</button>
+    </div>
+    <div class="action-list" id="actionList"></div>
+  </div>
+
 </div>
 
 <script type="module">
@@ -546,6 +706,7 @@
   const SUPABASE_URL = "https://ebzwftobzslvgwxwztqg.supabase.co";
   const SUPABASE_KEY = "sb_publishable_VQfWQsKmOWRYr4vGw6UTwQ_T9ezfT3b";
   const LS_KEY = "clipPlaylist:lastPlaylistId";
+  const SEGMENTED_MAX = 4;
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -561,6 +722,7 @@
   let loopClip = false;
   let pollTimer = null;
   let dragSourceIndex = null;
+  let activeTab = "playlists";
 
   // ---------- helpers ----------
 
@@ -575,6 +737,10 @@
     return String(str ?? "").replace(/[&<>"']/g, (ch) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     }[ch]));
+  }
+
+  function thumbUrl(videoId) {
+    return "https://i.ytimg.com/vi/" + encodeURIComponent(videoId) + "/default.jpg";
   }
 
   function parseTimeToSeconds(input) {
@@ -651,6 +817,43 @@
     return clips.findIndex((c) => c.id === currentId);
   }
 
+  // ---------- generic sheet helpers ----------
+
+  function openSheet(sheetEl, backdropEl) {
+    backdropEl.classList.add("open");
+    requestAnimationFrame(() => sheetEl.classList.add("open"));
+  }
+
+  function closeSheet(sheetEl, backdropEl) {
+    sheetEl.classList.remove("open");
+    backdropEl.classList.remove("open");
+  }
+
+  function wireSheetDismiss(sheetEl, backdropEl, onClose) {
+    backdropEl.addEventListener("click", () => { closeSheet(sheetEl, backdropEl); if (onClose) onClose(); });
+  }
+
+  // ---------- tabs ----------
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById("screen-playlists").classList.toggle("active", tab === "playlists");
+    document.getElementById("screen-nowplaying").classList.toggle("active", tab === "nowplaying");
+    document.getElementById("tabPlaylists").classList.toggle("active", tab === "playlists");
+    document.getElementById("tabLibrary").classList.toggle("active", tab === "library");
+    document.getElementById("tabNowPlaying").classList.toggle("active", tab === "nowplaying");
+    updateMiniPlayerVisibility();
+  }
+
+  document.getElementById("tabPlaylists").addEventListener("click", () => switchTab("playlists"));
+  document.getElementById("tabNowPlaying").addEventListener("click", () => switchTab("nowplaying"));
+  document.getElementById("tabLibrary").addEventListener("click", () => {
+    document.getElementById("tabLibrary").classList.add("active");
+    document.getElementById("tabPlaylists").classList.toggle("active", activeTab === "playlists");
+    document.getElementById("tabNowPlaying").classList.toggle("active", activeTab === "nowplaying");
+    openLibrarySheet();
+  });
+
   // ---------- playlists ----------
 
   async function loadPlaylists() {
@@ -659,18 +862,84 @@
     playlists = data || [];
   }
 
-  function renderPlaylistBar() {
-    const sel = document.getElementById("playlistSelect");
+  function renderPlaylistSwitcher() {
+    const wrap = document.getElementById("switcherWrap");
+    wrap.innerHTML = "";
+
     if (playlists.length === 0) {
-      sel.innerHTML = '<option value="">no playlists yet</option>';
-      sel.disabled = true;
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "switcher-row";
+      row.textContent = "No playlists yet";
+      row.disabled = true;
+      wrap.appendChild(row);
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "circle-btn";
+      addBtn.title = "New playlist";
+      addBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+      addBtn.addEventListener("click", openNewPlaylistSheet);
+      wrap.appendChild(addBtn);
       return;
     }
-    sel.disabled = false;
-    sel.innerHTML = playlists
-      .map((p) => '<option value="' + p.id + '"' + (p.id === currentPlaylistId ? " selected" : "") + ">" + escapeHtml(p.name) + "</option>")
-      .join("");
+
+    if (playlists.length <= SEGMENTED_MAX) {
+      const seg = document.createElement("div");
+      seg.className = "segmented";
+      playlists.forEach((p) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "segment" + (p.id === currentPlaylistId ? " active" : "");
+        btn.textContent = p.name;
+        btn.addEventListener("click", () => switchPlaylist(p.id));
+        seg.appendChild(btn);
+      });
+      wrap.appendChild(seg);
+    } else {
+      const current = playlists.find((p) => p.id === currentPlaylistId);
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "switcher-row";
+      row.innerHTML =
+        '<span>' + escapeHtml(current ? current.name : "Select playlist") + "</span>" +
+        '<svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+      row.addEventListener("click", openPlaylistPicker);
+      wrap.appendChild(row);
+    }
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "circle-btn";
+    addBtn.title = "New playlist";
+    addBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+    addBtn.addEventListener("click", openNewPlaylistSheet);
+    wrap.appendChild(addBtn);
   }
+
+  function openPlaylistPicker() {
+    const list = document.getElementById("playlistPickerList");
+    list.innerHTML = "";
+    playlists.forEach((p) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML =
+        '<div class="info"><div class="title">' + escapeHtml(p.name) + "</div></div>" +
+        (p.id === currentPlaylistId
+          ? '<span class="add-check" style="opacity:1"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>'
+          : "");
+      row.addEventListener("click", () => {
+        switchPlaylist(p.id);
+        closeSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
+      });
+      list.appendChild(row);
+    });
+    openSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
+  }
+
+  document.getElementById("playlistPickerCloseBtn").addEventListener("click", () =>
+    closeSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"))
+  );
+  wireSheetDismiss(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
 
   async function loadClipsForCurrentPlaylist() {
     if (!currentPlaylistId) { clips = []; return; }
@@ -712,47 +981,82 @@
       if (clips.length === 0) document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
     }
 
-    renderPlaylistBar();
+    renderPlaylistSwitcher();
     renderQueue();
+    updateMiniPlayer();
   }
 
-  // ---------- rendering ----------
+  // ---------- new playlist sheet ----------
+
+  function openNewPlaylistSheet() {
+    document.getElementById("newPlaylistInput").value = "";
+    openSheet(document.getElementById("newPlaylistSheet"), document.getElementById("newPlaylistBackdrop"));
+    setTimeout(() => document.getElementById("newPlaylistInput").focus(), 260);
+  }
+  function closeNewPlaylistSheet() {
+    closeSheet(document.getElementById("newPlaylistSheet"), document.getElementById("newPlaylistBackdrop"));
+  }
+  document.getElementById("newPlaylistCancelBtn").addEventListener("click", closeNewPlaylistSheet);
+  wireSheetDismiss(document.getElementById("newPlaylistSheet"), document.getElementById("newPlaylistBackdrop"));
+
+  document.getElementById("newPlaylistForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("newPlaylistInput");
+    const name = input.value.trim();
+    if (!name) return;
+    const submitBtn = e.target.querySelector("button[type=submit]");
+    submitBtn.disabled = true;
+    const { data, error } = await supabase.from("playlists").insert({ name }).select().single();
+    submitBtn.disabled = false;
+    if (error) {
+      window.alert("Failed to create playlist: " + error.message);
+      return;
+    }
+    playlists.push(data);
+    closeNewPlaylistSheet();
+    await switchPlaylist(data.id);
+  });
+
+  // ---------- rendering: queue ----------
 
   function renderQueue() {
-    const q = document.getElementById("queue");
+    const q = document.getElementById("queueList");
     q.innerHTML = "";
+    document.getElementById("countLabel").textContent = clips.length
+      ? clips.length + (clips.length === 1 ? " clip" : " clips")
+      : "";
 
     if (clips.length === 0) {
       const empty = document.createElement("div");
-      empty.className = "empty-queue";
-      empty.textContent = playlists.length === 0 ? "create a playlist to get started" : "no clips yet — add one below";
+      empty.className = "empty-state";
+      empty.textContent = playlists.length === 0 ? "Create a playlist to get started" : "No clips yet — tap + to add one";
       q.appendChild(empty);
+      return;
     }
 
     clips.forEach((c, i) => {
       const row = document.createElement("div");
-      row.className = "queue-item" + (c.id === currentId ? " active" : "");
+      row.className = "row" + (c.id === currentId ? " active" : "");
       row.dataset.id = c.id;
 
       const displayName = c.artist ? c.artist + " — " + c.name : c.name;
 
       row.innerHTML =
-        '<span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>' +
-        '<span class="idx">' + String(i + 1).padStart(2, "0") + "</span>" +
+        '<span class="grip" title="Drag to reorder">' +
+          '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>' +
+        "</span>" +
+        '<img class="thumb" src="' + thumbUrl(c.videoId) + '" alt="" loading="lazy">' +
         '<div class="info">' +
-          '<div class="name">' + escapeHtml(displayName) + "</div>" +
-          '<div class="range">' +
+          '<div class="title">' + escapeHtml(displayName) + "</div>" +
+          '<div class="subtitle">' +
             '<span class="time-edit" data-field="start">' + fmt(c.start) + "</span>" +
             " – " +
             '<span class="time-edit" data-field="end">' + fmt(c.end) + "</span>" +
           "</div>" +
         "</div>" +
-        '<span class="dur">' + fmt(c.end - c.start) + "</span>" +
-        '<span class="row-actions">' +
-          '<button class="up" title="Move up"' + (i === 0 ? " disabled" : "") + ">&#9650;</button>" +
-          '<button class="down" title="Move down"' + (i === clips.length - 1 ? " disabled" : "") + ">&#9660;</button>" +
-          '<button class="delete" title="Delete clip">&#10005;</button>' +
-        "</span>";
+        '<button class="trailing-btn" title="More">' +
+          '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>' +
+        "</button>";
 
       // click row -> load clip
       row.addEventListener("click", () => loadClip(i, true));
@@ -765,20 +1069,14 @@
         });
       });
 
-      // reorder buttons
-      const upBtn = row.querySelector(".up");
-      const downBtn = row.querySelector(".down");
-      upBtn.addEventListener("click", (e) => { e.stopPropagation(); moveClip(i, -1); });
-      downBtn.addEventListener("click", (e) => { e.stopPropagation(); moveClip(i, 1); });
-
-      // delete
-      row.querySelector(".delete").addEventListener("click", (e) => {
+      // row actions sheet
+      row.querySelector(".trailing-btn").addEventListener("click", (e) => {
         e.stopPropagation();
-        deleteClip(c.id);
+        openRowActions(c, i);
       });
 
       // drag and drop (initiated from handle, dropped on row)
-      const handle = row.querySelector(".drag-handle");
+      const handle = row.querySelector(".grip");
       handle.draggable = true;
       handle.addEventListener("dragstart", (e) => {
         e.stopPropagation();
@@ -809,13 +1107,48 @@
 
       q.appendChild(row);
     });
-
-    const idx = getCurrentIndex();
-    document.getElementById("countLabel").textContent =
-      clips.length ? (idx + 1) + " / " + clips.length : "0 / 0";
-    document.getElementById("nowLabel").textContent =
-      idx >= 0 ? clips[idx].name : "—";
   }
+
+  function openRowActions(clip, idx) {
+    document.getElementById("actionSheetTitle").textContent = clip.name;
+    const list = document.getElementById("actionList");
+    list.innerHTML = "";
+
+    const upBtn = document.createElement("button");
+    upBtn.className = "action-btn";
+    upBtn.disabled = idx === 0;
+    upBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg> Move Up';
+    upBtn.addEventListener("click", () => {
+      moveClip(idx, -1);
+      closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+    });
+
+    const downBtn = document.createElement("button");
+    downBtn.className = "action-btn";
+    downBtn.disabled = idx === clips.length - 1;
+    downBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg> Move Down';
+    downBtn.addEventListener("click", () => {
+      moveClip(idx, 1);
+      closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "action-btn danger";
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6"/></svg> Delete Clip';
+    delBtn.addEventListener("click", () => {
+      closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+      deleteClip(clip.id);
+    });
+
+    list.appendChild(upBtn);
+    list.appendChild(downBtn);
+    list.appendChild(delBtn);
+    openSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+  }
+  document.getElementById("actionCancelBtn").addEventListener("click", () =>
+    closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"))
+  );
+  wireSheetDismiss(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
 
   function reorderByIndex(fromIdx, toIdx) {
     const [item] = clips.splice(fromIdx, 1);
@@ -924,79 +1257,36 @@
       loadClip(newIdx, false);
     }
     renderQueue();
+    updateMiniPlayer();
   }
 
   function stopAndClearPlayer() {
     if (player && player.stopVideo) player.stopVideo();
     document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
     document.getElementById("nowLabel").textContent = "—";
-    document.getElementById("timeLabel").textContent = "0:00 / 0:00";
+    document.getElementById("nowArtistLabel").textContent = " ";
+    document.getElementById("elapsedLabel").textContent = "0:00";
+    document.getElementById("durationLabel").textContent = "0:00";
     document.getElementById("clipProgressFill").style.width = "0%";
+    updateMiniPlayer();
   }
 
-  // ---------- new playlist form ----------
+  // ---------- clip library (sheet) ----------
 
-  const newPlaylistBtn = document.getElementById("newPlaylistBtn");
-  const newPlaylistForm = document.getElementById("newPlaylistForm");
-  const newPlaylistInput = document.getElementById("newPlaylistInput");
+  document.getElementById("librarySearch").addEventListener("input", (e) => renderLibraryList(e.target.value));
 
-  newPlaylistBtn.addEventListener("click", () => {
-    if (newPlaylistForm.hasAttribute("hidden")) {
-      newPlaylistForm.removeAttribute("hidden");
-      newPlaylistInput.value = "";
-      newPlaylistInput.focus();
-    } else {
-      newPlaylistForm.setAttribute("hidden", "");
-    }
-  });
-
-  newPlaylistInput.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") newPlaylistForm.setAttribute("hidden", "");
-  });
-
-  newPlaylistForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = newPlaylistInput.value.trim();
-    if (!name) return;
-    const submitBtn = newPlaylistForm.querySelector("button");
-    submitBtn.disabled = true;
-    const { data, error } = await supabase.from("playlists").insert({ name }).select().single();
-    submitBtn.disabled = false;
-    if (error) {
-      window.alert("Failed to create playlist: " + error.message);
-      return;
-    }
-    playlists.push(data);
-    newPlaylistForm.setAttribute("hidden", "");
-    await switchPlaylist(data.id);
-  });
-
-  document.getElementById("playlistSelect").addEventListener("change", (e) => {
-    switchPlaylist(e.target.value);
-  });
-
-  // ---------- clip library ----------
-
-  const libraryModal = document.getElementById("libraryModal");
-  const libraryList = document.getElementById("libraryList");
-  const librarySearch = document.getElementById("librarySearch");
-
-  document.getElementById("openLibraryBtn").addEventListener("click", openLibrary);
-  document.getElementById("libraryCloseBtn").addEventListener("click", closeLibrary);
-  libraryModal.addEventListener("click", (e) => { if (e.target === libraryModal) closeLibrary(); });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !libraryModal.hasAttribute("hidden")) closeLibrary();
-  });
-  librarySearch.addEventListener("input", () => renderLibraryList(librarySearch.value));
-
-  async function openLibrary() {
+  async function openLibrarySheet() {
     if (!currentPlaylistId) {
       window.alert("Create a playlist first.");
+      document.getElementById("tabLibrary").classList.remove("active");
+      document.getElementById("tabPlaylists").classList.toggle("active", activeTab === "playlists");
+      document.getElementById("tabNowPlaying").classList.toggle("active", activeTab === "nowplaying");
       return;
     }
-    libraryModal.removeAttribute("hidden");
-    librarySearch.value = "";
-    libraryList.innerHTML = '<div class="library-empty">loading…</div>';
+    const listEl = document.getElementById("libraryList");
+    document.getElementById("librarySearch").value = "";
+    listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+    openSheet(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"));
     try {
       const { data, error } = await supabase
         .from("clip_library")
@@ -1005,18 +1295,23 @@
       if (error) throw error;
       libraryCache = data || [];
     } catch (err) {
-      libraryList.innerHTML = '<div class="library-empty">failed to load library: ' + escapeHtml(err.message) + "</div>";
+      listEl.innerHTML = '<div class="empty-state">Failed to load library: ' + escapeHtml(err.message) + "</div>";
       return;
     }
     renderLibraryList("");
-    librarySearch.focus();
   }
 
-  function closeLibrary() {
-    libraryModal.setAttribute("hidden", "");
+  function closeLibrarySheet() {
+    closeSheet(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"));
+    document.getElementById("tabLibrary").classList.remove("active");
+    document.getElementById("tabPlaylists").classList.toggle("active", activeTab === "playlists");
+    document.getElementById("tabNowPlaying").classList.toggle("active", activeTab === "nowplaying");
   }
+  document.getElementById("libraryCloseBtn").addEventListener("click", closeLibrarySheet);
+  wireSheetDismiss(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"), closeLibrarySheet);
 
   function renderLibraryList(filterText) {
+    const listEl = document.getElementById("libraryList");
     const q = filterText.trim().toLowerCase();
     const items = q
       ? libraryCache.filter((it) =>
@@ -1024,27 +1319,28 @@
         )
       : libraryCache;
 
-    libraryList.innerHTML = "";
+    listEl.innerHTML = "";
     if (items.length === 0) {
       const empty = document.createElement("div");
-      empty.className = "library-empty";
-      empty.textContent = libraryCache.length ? "no matches" : "library is empty — add a clip to populate it";
-      libraryList.appendChild(empty);
+      empty.className = "empty-state";
+      empty.textContent = libraryCache.length ? "No matches" : "Library is empty — add a clip to populate it";
+      listEl.appendChild(empty);
       return;
     }
 
     items.forEach((entry) => {
       const row = document.createElement("div");
-      row.className = "library-item";
+      row.className = "row";
       const displayName = entry.artist ? entry.artist + " — " + entry.name : entry.name;
       row.innerHTML =
+        '<img class="thumb" src="' + thumbUrl(entry.video_id) + '" alt="" loading="lazy">' +
         '<div class="info">' +
-          '<div class="name">' + escapeHtml(displayName) + "</div>" +
-          '<div class="meta">' + fmt(entry.start_seconds) + " – " + fmt(entry.end_seconds) + "</div>" +
+          '<div class="title">' + escapeHtml(displayName) + "</div>" +
+          '<div class="subtitle">' + fmt(entry.start_seconds) + " – " + fmt(entry.end_seconds) + "</div>" +
         "</div>" +
-        '<span class="add-mark">added &#10003;</span>';
+        '<span class="add-check"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>';
       row.addEventListener("click", () => addFromLibrary(entry, row));
-      libraryList.appendChild(row);
+      listEl.appendChild(row);
     });
   }
 
@@ -1075,6 +1371,7 @@
     if (!currentId) currentId = data.id;
     renderQueue();
     maybeInitPlayer();
+    updateMiniPlayer();
 
     if (rowEl) {
       rowEl.classList.add("added");
@@ -1087,7 +1384,22 @@
     if (bumpError) console.error("Failed to bump last_used_at", bumpError);
   }
 
-  // ---------- add clip form ----------
+  // ---------- add clip sheet ----------
+
+  document.getElementById("addClipBtn").addEventListener("click", () => {
+    document.getElementById("addStatus").className = "status-line";
+    document.getElementById("addStatus").textContent = "";
+    document.getElementById("urlInput").value = "";
+    document.getElementById("startInput").value = "";
+    document.getElementById("endInput").value = "";
+    openSheet(document.getElementById("addClipSheet"), document.getElementById("addClipBackdrop"));
+    setTimeout(() => document.getElementById("urlInput").focus(), 260);
+  });
+  function closeAddClipSheet() {
+    closeSheet(document.getElementById("addClipSheet"), document.getElementById("addClipBackdrop"));
+  }
+  document.getElementById("addClipCancelBtn").addEventListener("click", closeAddClipSheet);
+  wireSheetDismiss(document.getElementById("addClipSheet"), document.getElementById("addClipBackdrop"));
 
   document.getElementById("addClipForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1097,36 +1409,36 @@
     const startInput = document.getElementById("startInput");
     const endInput = document.getElementById("endInput");
 
-    statusEl.className = "add-status";
+    statusEl.className = "status-line";
     statusEl.textContent = "";
 
     if (!currentPlaylistId) {
-      statusEl.className = "add-status error";
+      statusEl.className = "status-line error";
       statusEl.textContent = "create a playlist first";
       return;
     }
 
     const videoId = extractVideoId(urlInput.value);
     if (!videoId) {
-      statusEl.className = "add-status error";
+      statusEl.className = "status-line error";
       statusEl.textContent = "couldn't find a video id in that link";
       return;
     }
     const start = parseTimeToSeconds(startInput.value);
     const end = parseTimeToSeconds(endInput.value);
     if (isNaN(start) || isNaN(end)) {
-      statusEl.className = "add-status error";
+      statusEl.className = "status-line error";
       statusEl.textContent = "start/end must be seconds or m:ss";
       return;
     }
     if (!(start < end)) {
-      statusEl.className = "add-status error";
+      statusEl.className = "status-line error";
       statusEl.textContent = "start must be before end";
       return;
     }
 
     addBtn.disabled = true;
-    statusEl.className = "add-status";
+    statusEl.className = "status-line";
     statusEl.textContent = "fetching title…";
 
     let name = "Clip " + videoId;
@@ -1177,20 +1489,19 @@
     addBtn.disabled = false;
 
     if (error) {
-      statusEl.className = "add-status error";
+      statusEl.className = "status-line error";
       statusEl.textContent = "failed to add: " + error.message;
       return;
     }
 
     clips.push(rowToClip(data));
     if (!currentId) currentId = data.id;
-    statusEl.className = "add-status ok";
+    statusEl.className = "status-line ok";
     statusEl.textContent = "added “" + name + "”";
-    urlInput.value = "";
-    startInput.value = "";
-    endInput.value = "";
     renderQueue();
     maybeInitPlayer();
+    updateMiniPlayer();
+    setTimeout(closeAddClipSheet, 500);
   });
 
   // ---------- player ----------
@@ -1205,6 +1516,7 @@
     const c = clips[i];
     currentId = c.id;
     renderQueue();
+    updateMiniPlayer();
     if (player && player.loadVideoById) {
       player.loadVideoById({ videoId: c.videoId, startSeconds: c.start });
       if (!autoplay) player.pauseVideo();
@@ -1223,6 +1535,7 @@
         onReady: () => {
           document.getElementById("statusLabel").textContent = "ready — press play";
           startPolling();
+          updateMiniPlayer();
         },
         onStateChange: onStateChange
       }
@@ -1234,10 +1547,19 @@
     maybeInitPlayer();
   };
 
+  function setPlayIcon(playing) {
+    const bigIcon = document.getElementById("playIcon");
+    const miniIcon = document.getElementById("miniPlayIcon");
+    const path = playing
+      ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+    bigIcon.innerHTML = path;
+    miniIcon.innerHTML = path;
+  }
+
   function onStateChange(e) {
-    const btn = document.getElementById("playBtn");
-    if (e.data === YT.PlayerState.PLAYING) btn.innerHTML = "&#10073;&#10073;";
-    if (e.data === YT.PlayerState.PAUSED) btn.innerHTML = "&#9654;";
+    if (e.data === YT.PlayerState.PLAYING) setPlayIcon(true);
+    if (e.data === YT.PlayerState.PAUSED) setPlayIcon(false);
   }
 
   function startPolling() {
@@ -1252,7 +1574,9 @@
       const elapsed = Math.max(0, t - c.start);
       const pct = dur > 0 ? Math.min(100, (elapsed / dur) * 100) : 0;
       document.getElementById("clipProgressFill").style.width = pct + "%";
-      document.getElementById("timeLabel").textContent = fmt(elapsed) + " / " + fmt(dur);
+      document.getElementById("miniProgressFill").style.width = pct + "%";
+      document.getElementById("elapsedLabel").textContent = fmt(elapsed);
+      document.getElementById("durationLabel").textContent = fmt(dur);
 
       if (t >= c.end) {
         if (loopClip) {
@@ -1266,23 +1590,25 @@
     }, 250);
   }
 
-  document.getElementById("playBtn").addEventListener("click", () => {
+  function togglePlayPause() {
     if (!player || !player.getPlayerState) return;
     const state = player.getPlayerState();
     if (state === YT.PlayerState.PLAYING) player.pauseVideo();
     else player.playVideo();
-  });
+  }
+
+  document.getElementById("playBtn").addEventListener("click", togglePlayPause);
+  document.getElementById("miniPlayBtn").addEventListener("click", (e) => { e.stopPropagation(); togglePlayPause(); });
   document.getElementById("nextBtn").addEventListener("click", () => loadClip(getCurrentIndex() + 1, true));
   document.getElementById("prevBtn").addEventListener("click", () => loadClip(getCurrentIndex() - 1, true));
+  document.getElementById("miniNextBtn").addEventListener("click", (e) => { e.stopPropagation(); loadClip(getCurrentIndex() + 1, true); });
   document.getElementById("autoBtn").addEventListener("click", (e) => {
     autoAdvance = !autoAdvance;
-    e.target.classList.toggle("on", autoAdvance);
-    e.target.textContent = "Auto-advance: " + (autoAdvance ? "on" : "off");
+    e.currentTarget.classList.toggle("on", autoAdvance);
   });
   document.getElementById("loopBtn").addEventListener("click", (e) => {
     loopClip = !loopClip;
-    e.target.classList.toggle("on", loopClip);
-    e.target.textContent = "Loop clip: " + (loopClip ? "on" : "off");
+    e.currentTarget.classList.toggle("on", loopClip);
   });
   document.getElementById("clipProgress").addEventListener("click", (e) => {
     if (!player || !player.seekTo) return;
@@ -1295,6 +1621,32 @@
     player.seekTo(target, true);
   });
 
+  document.getElementById("miniPlayer").addEventListener("click", () => switchTab("nowplaying"));
+
+  // ---------- mini player sync ----------
+
+  function updateMiniPlayer() {
+    const mini = document.getElementById("miniPlayer");
+    const idx = getCurrentIndex();
+    if (idx === -1) {
+      mini.hidden = true;
+      return;
+    }
+    const c = clips[idx];
+    document.getElementById("miniThumb").src = thumbUrl(c.videoId);
+    document.getElementById("miniTitle").textContent = c.artist ? c.artist + " — " + c.name : c.name;
+    document.getElementById("nowLabel").textContent = c.name;
+    document.getElementById("nowArtistLabel").textContent = c.artist || " ";
+    mini.hidden = false;
+    updateMiniPlayerVisibility();
+  }
+
+  function updateMiniPlayerVisibility() {
+    const mini = document.getElementById("miniPlayer");
+    if (getCurrentIndex() === -1) { mini.hidden = true; return; }
+    mini.hidden = activeTab === "nowplaying";
+  }
+
   // ---------- init ----------
 
   async function init() {
@@ -1305,14 +1657,14 @@
       console.error("Failed to load playlists", err);
       document.getElementById("statusLabel").textContent = "failed to load playlists: " + err.message;
       dataReady = true;
-      renderPlaylistBar();
+      renderPlaylistSwitcher();
       renderQueue();
       return;
     }
 
     if (playlists.length === 0) {
       dataReady = true;
-      renderPlaylistBar();
+      renderPlaylistSwitcher();
       renderQueue();
       document.getElementById("statusLabel").textContent = "no playlists yet — create one above";
       return;
@@ -1321,13 +1673,14 @@
     const saved = localStorage.getItem(LS_KEY);
     currentPlaylistId = playlists.some((p) => p.id === saved) ? saved : playlists[0].id;
     localStorage.setItem(LS_KEY, currentPlaylistId);
-    renderPlaylistBar();
+    renderPlaylistSwitcher();
 
     await loadClipsForCurrentPlaylist();
     if (clips.length > 0) currentId = clips[0].id;
     dataReady = true;
     renderQueue();
     maybeInitPlayer();
+    updateMiniPlayer();
     document.getElementById("statusLabel").textContent = clips.length
       ? "ready — press play"
       : "queue is empty — add a clip below";
