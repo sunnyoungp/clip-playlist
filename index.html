@@ -389,7 +389,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 40px;
+    gap: 24px;
     margin-bottom: 26px;
   }
   .np-transport button {
@@ -401,6 +401,38 @@
     transition: transform 100ms ease-out;
   }
   .np-transport button:active { transform: scale(0.9); }
+  .transport-toggle {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 100ms ease-out, color 150ms;
+  }
+  .transport-toggle:active { transform: scale(0.9); }
+  .transport-toggle.on { color: var(--accent); }
+  .transport-toggle .repeat-badge {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .transport-toggle .repeat-badge[hidden] { display: none; }
   .np-toggles { display: flex; justify-content: center; gap: 10px; margin-bottom: 8px; }
   .pill-toggle {
     border: 1px solid var(--track);
@@ -693,6 +725,9 @@
       </div>
 
       <div class="np-transport">
+        <button id="shuffleBtn" class="transport-toggle" title="Shuffle: off">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        </button>
         <button id="prevBtn" title="Previous clip">
           <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M11 6L4 12l7 6V6zM20 6l-7 6 7 6V6z"/></svg>
         </button>
@@ -702,11 +737,14 @@
         <button id="nextBtn" title="Next clip">
           <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg>
         </button>
+        <button id="repeatBtn" class="transport-toggle" title="Repeat: off">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+          <span class="repeat-badge" id="repeatBadge" hidden>1</span>
+        </button>
       </div>
 
       <div class="np-toggles">
         <button id="autoBtn" class="pill-toggle on">Auto-advance</button>
-        <button id="loopBtn" class="pill-toggle">Loop clip</button>
       </div>
 
       <div class="np-status" id="statusLabel">loading…</div>
@@ -847,6 +885,9 @@
   const SUPABASE_URL = "https://ebzwftobzslvgwxwztqg.supabase.co";
   const SUPABASE_KEY = "sb_publishable_VQfWQsKmOWRYr4vGw6UTwQ_T9ezfT3b";
   const LS_KEY = "clipPlaylist:lastPlaylistId";
+  const REPEAT_LS_KEY = "clipPlaylist:repeatMode";
+  const SHUFFLE_LS_KEY = "clipPlaylist:shuffleOn";
+  const REPEAT_MODES = ["off", "playlist", "one"];
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -859,7 +900,9 @@
   let apiReady = false;
   let dataReady = false;
   let autoAdvance = true;
-  let loopClip = false;
+  let repeatMode = "off";      // "off" | "playlist" | "one"
+  let shuffleOn = false;
+  let shuffleOrder = [];       // array of clip ids — playback order override when shuffleOn
   let pollTimer = null;
   let dragSourceIndex = null;
   let activeTab = "playlists";
@@ -1251,6 +1294,7 @@
 
     await loadClipsForCurrentPlaylist();
     if (clips.length > 0) currentId = clips[0].id;
+    if (shuffleOn) regenerateShuffleOrder();
 
     if (player) {
       if (clips.length > 0) {
@@ -1345,7 +1389,7 @@
         "</button>";
 
       // click row -> load clip
-      row.addEventListener("click", () => loadClip(i, true));
+      row.addEventListener("click", () => loadClipById(c.id, true));
 
       // inline start/end editing
       row.querySelectorAll(".time-edit").forEach((span) => {
@@ -1530,13 +1574,14 @@
 
     clips.splice(idx, 1);
     await persistOrder();
+    if (shuffleOn) shuffleOrder = shuffleOrder.filter((sid) => sid !== id);
 
     if (clips.length === 0) {
       currentId = null;
       stopAndClearPlayer();
     } else if (id === currentId) {
       const newIdx = Math.min(idx, clips.length - 1);
-      loadClip(newIdx, false);
+      loadClipById(clips[newIdx].id, false);
     }
     renderQueue();
     updateMiniPlayer();
@@ -1646,6 +1691,10 @@
     }
 
     clips.push(rowToClip(data));
+    if (shuffleOn) {
+      const insertAt = Math.floor(Math.random() * (shuffleOrder.length + 1));
+      shuffleOrder.splice(insertAt, 0, data.id);
+    }
     if (!currentId) currentId = data.id;
     renderQueue();
     maybeInitPlayer();
@@ -1773,6 +1822,10 @@
     }
 
     clips.push(rowToClip(data));
+    if (shuffleOn) {
+      const insertAt = Math.floor(Math.random() * (shuffleOrder.length + 1));
+      shuffleOrder.splice(insertAt, 0, data.id);
+    }
     if (!currentId) currentId = data.id;
     statusEl.className = "status-line ok";
     statusEl.textContent = "added “" + name + "”";
@@ -1784,14 +1837,34 @@
 
   // ---------- player ----------
 
-  function loadClip(i, autoplay) {
-    if (clips.length === 0) return;
-    if (i < 0) i = clips.length - 1;
-    if (i >= clips.length) {
-      if (autoAdvance) { i = 0; autoplay = false; }
-      else return;
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
     }
-    const c = clips[i];
+    return a;
+  }
+
+  function regenerateShuffleOrder() {
+    shuffleOrder = shuffleArray(clips.map((c) => c.id));
+  }
+
+  function getQueuePosition() {
+    if (shuffleOn && shuffleOrder.length === clips.length && clips.length > 0) {
+      let pos = shuffleOrder.indexOf(currentId);
+      if (pos === -1) pos = 0;
+      return { order: shuffleOrder, pos };
+    }
+    const order = clips.map((c) => c.id);
+    let pos = getCurrentIndex();
+    if (pos === -1) pos = 0;
+    return { order, pos };
+  }
+
+  function loadClipById(id, autoplay) {
+    const c = clips.find((cl) => cl.id === id);
+    if (!c) return;
     currentId = c.id;
     renderQueue();
     updateMiniPlayer();
@@ -1800,6 +1873,68 @@
       if (!autoplay) player.pauseVideo();
     }
   }
+
+  function playNext() {
+    if (clips.length === 0) return;
+    const { order, pos } = getQueuePosition();
+    let newPos = pos + 1;
+    let autoplay = true;
+
+    if (newPos >= order.length) {
+      if (repeatMode === "playlist") {
+        if (shuffleOn) shuffleOrder = shuffleArray(clips.map((c) => c.id));
+        newPos = 0;
+        autoplay = true;
+      } else {
+        // end of queue, repeat off: wrap to the first clip but don't autoplay
+        newPos = 0;
+        autoplay = false;
+      }
+    }
+
+    const targetOrder = shuffleOn && shuffleOrder.length === clips.length ? shuffleOrder : order;
+    loadClipById(targetOrder[newPos], autoplay);
+  }
+
+  function playPrev() {
+    if (clips.length === 0) return;
+    const { order, pos } = getQueuePosition();
+    let newPos = pos - 1;
+    if (newPos < 0) newPos = order.length - 1;
+    loadClipById(order[newPos], true);
+  }
+
+  function updateRepeatButtonUI() {
+    const btn = document.getElementById("repeatBtn");
+    const badge = document.getElementById("repeatBadge");
+    btn.classList.toggle("on", repeatMode !== "off");
+    badge.hidden = repeatMode !== "one";
+    btn.title = repeatMode === "off" ? "Repeat: off" : repeatMode === "playlist" ? "Repeat: all" : "Repeat: one";
+  }
+
+  function updateShuffleButtonUI() {
+    const btn = document.getElementById("shuffleBtn");
+    btn.classList.toggle("on", shuffleOn);
+    btn.title = shuffleOn ? "Shuffle: on" : "Shuffle: off";
+  }
+
+  document.getElementById("repeatBtn").addEventListener("click", () => {
+    const idx = REPEAT_MODES.indexOf(repeatMode);
+    repeatMode = REPEAT_MODES[(idx + 1) % REPEAT_MODES.length];
+    localStorage.setItem(REPEAT_LS_KEY, repeatMode);
+    updateRepeatButtonUI();
+  });
+
+  document.getElementById("shuffleBtn").addEventListener("click", () => {
+    shuffleOn = !shuffleOn;
+    localStorage.setItem(SHUFFLE_LS_KEY, shuffleOn ? "1" : "0");
+    if (shuffleOn) {
+      regenerateShuffleOrder();
+    } else {
+      shuffleOrder = [];
+    }
+    updateShuffleButtonUI();
+  });
 
   function maybeInitPlayer() {
     if (!apiReady || !dataReady || player || clips.length === 0) return;
@@ -1857,10 +1992,10 @@
       document.getElementById("durationLabel").textContent = fmt(dur);
 
       if (t >= c.end) {
-        if (loopClip) {
+        if (repeatMode === "one") {
           player.seekTo(c.start, true);
         } else if (autoAdvance) {
-          loadClip(idx + 1, true);
+          playNext();
         } else {
           player.pauseVideo();
         }
@@ -1877,16 +2012,12 @@
 
   document.getElementById("playBtn").addEventListener("click", togglePlayPause);
   document.getElementById("miniPlayBtn").addEventListener("click", (e) => { e.stopPropagation(); togglePlayPause(); });
-  document.getElementById("nextBtn").addEventListener("click", () => loadClip(getCurrentIndex() + 1, true));
-  document.getElementById("prevBtn").addEventListener("click", () => loadClip(getCurrentIndex() - 1, true));
-  document.getElementById("miniNextBtn").addEventListener("click", (e) => { e.stopPropagation(); loadClip(getCurrentIndex() + 1, true); });
+  document.getElementById("nextBtn").addEventListener("click", () => playNext());
+  document.getElementById("prevBtn").addEventListener("click", () => playPrev());
+  document.getElementById("miniNextBtn").addEventListener("click", (e) => { e.stopPropagation(); playNext(); });
   document.getElementById("autoBtn").addEventListener("click", (e) => {
     autoAdvance = !autoAdvance;
     e.currentTarget.classList.toggle("on", autoAdvance);
-  });
-  document.getElementById("loopBtn").addEventListener("click", (e) => {
-    loopClip = !loopClip;
-    e.currentTarget.classList.toggle("on", loopClip);
   });
   document.getElementById("clipProgress").addEventListener("click", (e) => {
     if (!player || !player.seekTo) return;
@@ -1928,6 +2059,11 @@
   // ---------- init ----------
 
   async function init() {
+    repeatMode = REPEAT_MODES.includes(localStorage.getItem(REPEAT_LS_KEY)) ? localStorage.getItem(REPEAT_LS_KEY) : "off";
+    shuffleOn = localStorage.getItem(SHUFFLE_LS_KEY) === "1";
+    updateRepeatButtonUI();
+    updateShuffleButtonUI();
+
     document.getElementById("statusLabel").textContent = "loading…";
     try {
       await loadPlaylists();
@@ -1955,6 +2091,7 @@
 
     await loadClipsForCurrentPlaylist();
     if (clips.length > 0) currentId = clips[0].id;
+    if (shuffleOn) regenerateShuffleOrder();
     dataReady = true;
     renderQueue();
     maybeInitPlayer();
