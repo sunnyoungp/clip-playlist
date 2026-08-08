@@ -121,7 +121,7 @@
   .list-add-btn:hover { background: var(--track); }
   .list-add-btn:active { transform: scale(0.99); }
 
-  /* ---------- playlist rows (shared by sidebar + mobile picker sheet) ---------- */
+  /* ---------- playlist rows (shared by sidebar + mobile picker sheet + add-to-playlist picker) ---------- */
   .playlist-row {
     display: flex;
     align-items: center;
@@ -188,6 +188,7 @@
     padding: 20px 0 14px;
     gap: 12px;
   }
+  .nav-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
   .title-switcher {
     display: flex;
     align-items: center;
@@ -353,6 +354,39 @@
   }
   .search-field input:focus { outline: none; }
   .search-field input::placeholder { color: var(--text-secondary); }
+
+  /* ---------- library page: play all ---------- */
+  .play-all-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    border: none;
+    background: var(--row);
+    border-radius: 10px;
+    padding: 11px 14px;
+    margin: 4px 0 14px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    transition: transform 100ms ease-out;
+  }
+  .play-all-row:active { transform: scale(0.99); }
+  .play-all-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .play-all-label { flex: 1; }
+  .play-all-count { font-size: 13px; color: var(--text-secondary); font-weight: 400; }
 
   /* ---------- now playing ---------- */
   .np-art {
@@ -629,13 +663,15 @@
   /* ---------- desktop layout (>= 900px) ---------- */
   @media (min-width: 900px) {
     .app-shell {
-      max-width: 1280px;
+      max-width: none;
+      margin: 0;
       display: flex;
-      align-items: flex-start;
+      align-items: stretch;
     }
     .sidebar { display: flex; }
     .tab-bar { display: none; }
-    .screen { padding: 0 40px 110px; max-width: 900px; }
+    .app { flex: 1; min-width: 0; }
+    .screen { padding: 0 40px 110px; max-width: 900px; margin: 0 auto; }
     .title-switcher { cursor: default; }
     .title-switcher .chev-down { display: none; }
     .row { padding: 13px 6px; gap: 14px; }
@@ -659,6 +695,56 @@
     .mini-player .thumb { width: 44px; height: 44px; border-radius: 8px; }
     .mini-player .title { font-size: 15px; }
     .mini-player .info { max-width: 420px; flex: 0 1 auto; }
+
+    /* Now Playing takes over the full remaining area, not a small centered card */
+    #screen-nowplaying.screen.active {
+      max-width: none;
+      margin: 0;
+      padding: 0 48px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #screen-nowplaying .nav-header { display: none; }
+    #screen-nowplaying .np-art { max-width: 640px; margin: 0 0 32px; }
+    #screen-nowplaying .np-meta { margin-bottom: 28px; }
+    #screen-nowplaying .np-title { font-size: 30px; }
+    #screen-nowplaying .np-artist { font-size: 17px; margin-top: 4px; }
+    #screen-nowplaying .np-progress-track,
+    #screen-nowplaying .np-time-row,
+    #screen-nowplaying .np-transport,
+    #screen-nowplaying .np-toggles {
+      width: 100%;
+      max-width: 640px;
+    }
+    #screen-nowplaying .np-transport { gap: 32px; margin-bottom: 32px; }
+    #screen-nowplaying #playBtn svg { width: 54px; height: 54px; }
+    #screen-nowplaying #prevBtn svg, #screen-nowplaying #nextBtn svg { width: 32px; height: 32px; }
+
+    /* Sheets become centered modal dialogs instead of bottom sheets */
+    .sheet-grabber { display: none; }
+    .sheet {
+      left: 50%;
+      top: 50%;
+      bottom: auto;
+      transform: translate(-50%, -46%);
+      width: 90%;
+      max-width: 440px;
+      max-height: 80vh;
+      border-radius: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease;
+    }
+    .sheet.open {
+      transform: translate(-50%, -50%);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .sheet-header { padding: 16px 20px 12px; }
+    .sheet-body { padding: 0 20px 20px; }
   }
 </style>
 </head>
@@ -694,13 +780,41 @@
           <h1 id="playlistTitle">Playlists</h1>
           <svg class="chev-down" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-        <button class="nav-action" id="addClipBtn" title="Add clip">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
+        <div class="nav-header-actions">
+          <button class="nav-action" id="addFromLibraryBtn" title="Add from library">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="12" height="10" rx="1.5"/><path d="M6.5 6V4.5a1.5 1.5 0 011.5-1.5h3a1.5 1.5 0 011.5 1.5V6"/></svg>
+          </button>
+          <button class="nav-action" id="addClipBtn" title="Add clip">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="list-meta" id="countLabel"></div>
       <div class="list" id="queueList"></div>
+    </section>
+
+    <!-- ============ LIBRARY SCREEN (standalone page) ============ -->
+    <section class="screen" id="screen-library">
+      <div class="nav-header">
+        <h1>Library</h1>
+        <button class="nav-action" id="libraryAddClipBtn" title="Add clip to library">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+
+      <div class="search-field">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="libraryPageSearch" placeholder="Search name or artist" autocomplete="off">
+      </div>
+
+      <button type="button" class="play-all-row" id="playAllBtn">
+        <span class="play-all-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+        <span class="play-all-label">Play All</span>
+        <span class="play-all-count" id="libraryCountLabel"></span>
+      </button>
+
+      <div class="list" id="libraryPageList"></div>
     </section>
 
     <!-- ============ NOW PLAYING SCREEN ============ -->
@@ -785,12 +899,12 @@
   </button>
 </nav>
 
-<!-- ============ ADD CLIP SHEET ============ -->
+<!-- ============ ADD CLIP SHEET (shared: add to playlist, or add to library) ============ -->
 <div class="sheet-backdrop" id="addClipBackdrop"></div>
 <div class="sheet" id="addClipSheet">
   <div class="sheet-grabber"></div>
   <div class="sheet-header">
-    <h2>Add Clip</h2>
+    <h2 id="addClipTitle">Add Clip</h2>
     <button type="button" class="text-btn" id="addClipCancelBtn">Cancel</button>
   </div>
   <div class="sheet-body">
@@ -815,12 +929,12 @@
   </div>
 </div>
 
-<!-- ============ LIBRARY SHEET ============ -->
+<!-- ============ LIBRARY PICKER SHEET (add from library into current playlist) ============ -->
 <div class="sheet-backdrop" id="libraryBackdrop"></div>
 <div class="sheet" id="librarySheet">
   <div class="sheet-grabber"></div>
   <div class="sheet-header">
-    <h2>Clip Library</h2>
+    <h2>Add from Library</h2>
     <button type="button" class="text-btn" id="libraryCloseBtn">Done</button>
   </div>
   <div class="sheet-body">
@@ -829,6 +943,19 @@
       <input type="text" id="librarySearch" placeholder="Search name or artist" autocomplete="off">
     </div>
     <div class="list" id="libraryList"></div>
+  </div>
+</div>
+
+<!-- ============ ADD TO PLAYLIST PICKER (from a library row) ============ -->
+<div class="sheet-backdrop" id="addToPlaylistBackdrop"></div>
+<div class="sheet" id="addToPlaylistSheet">
+  <div class="sheet-grabber"></div>
+  <div class="sheet-header">
+    <h2>Add to Playlist</h2>
+    <button type="button" class="text-btn" id="addToPlaylistCancelBtn">Cancel</button>
+  </div>
+  <div class="sheet-body">
+    <div class="list" id="addToPlaylistList"></div>
   </div>
 </div>
 
@@ -868,7 +995,7 @@
   </div>
 </div>
 
-<!-- ============ ACTION SHEET (clip row actions + playlist actions) ============ -->
+<!-- ============ ACTION SHEET (clip row actions + playlist actions + library row actions) ============ -->
 <div class="sheet-backdrop" id="actionBackdrop"></div>
 <div class="sheet" id="actionSheet">
   <div class="sheet-grabber"></div>
@@ -893,9 +1020,13 @@
 
   let playlists = [];         // { id, name, created_at }
   let currentPlaylistId = null;
-  let clips = [];              // { id, name, artist, videoId, start, end, position }
+  let clips = [];              // { id, name, artist, videoId, start, end, position } — current playlist's clips
+  let libraryClips = [];       // { id, name, artist, videoId, start, end, lastUsedAt } — all clip_library rows
+  let queue = clips;           // whichever list is actually loaded for playback right now
+  let queueSource = "playlist"; // "playlist" | "library"
   let currentId = null;        // id of the clip currently loaded in the player
-  let libraryCache = [];
+  let currentLibrarySearch = "";
+  let addClipContext = "playlist"; // "playlist" | "library" — which flow the Add Clip sheet is serving
   let player = null;
   let apiReady = false;
   let dataReady = false;
@@ -996,15 +1127,27 @@
     };
   }
 
+  function rowToLibraryClip(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      artist: row.artist || "",
+      videoId: row.video_id,
+      start: Number(row.start_seconds),
+      end: Number(row.end_seconds),
+      lastUsedAt: row.last_used_at
+    };
+  }
+
   function getCurrentIndex() {
-    return clips.findIndex((c) => c.id === currentId);
+    return queue.findIndex((c) => c.id === currentId);
   }
 
   // ---------- generic sheet helpers ----------
 
   function openSheet(sheetEl, backdropEl) {
     backdropEl.classList.add("open");
-    requestAnimationFrame(() => sheetEl.classList.add("open"));
+    sheetEl.classList.add("open");
   }
 
   function closeSheet(sheetEl, backdropEl) {
@@ -1019,27 +1162,28 @@
   // ---------- tabs / nav ----------
 
   function syncNavActiveStates() {
-    const libraryOpen = document.getElementById("librarySheet").classList.contains("open");
-    document.getElementById("tabPlaylists").classList.toggle("active", !libraryOpen && activeTab === "playlists");
-    document.getElementById("tabNowPlaying").classList.toggle("active", !libraryOpen && activeTab === "nowplaying");
-    document.getElementById("tabLibrary").classList.toggle("active", libraryOpen);
-    document.getElementById("sidebarNowPlayingBtn").classList.toggle("active", !libraryOpen && activeTab === "nowplaying");
-    document.getElementById("sidebarLibraryBtn").classList.toggle("active", libraryOpen);
+    document.getElementById("tabPlaylists").classList.toggle("active", activeTab === "playlists");
+    document.getElementById("tabLibrary").classList.toggle("active", activeTab === "library");
+    document.getElementById("tabNowPlaying").classList.toggle("active", activeTab === "nowplaying");
+    document.getElementById("sidebarLibraryBtn").classList.toggle("active", activeTab === "library");
+    document.getElementById("sidebarNowPlayingBtn").classList.toggle("active", activeTab === "nowplaying");
   }
 
   function switchTab(tab) {
     activeTab = tab;
     document.getElementById("screen-playlists").classList.toggle("active", tab === "playlists");
+    document.getElementById("screen-library").classList.toggle("active", tab === "library");
     document.getElementById("screen-nowplaying").classList.toggle("active", tab === "nowplaying");
     syncNavActiveStates();
     updateMiniPlayerVisibility();
+    if (tab === "library") openLibraryPage();
   }
 
   document.getElementById("tabPlaylists").addEventListener("click", () => switchTab("playlists"));
+  document.getElementById("tabLibrary").addEventListener("click", () => switchTab("library"));
   document.getElementById("tabNowPlaying").addEventListener("click", () => switchTab("nowplaying"));
-  document.getElementById("tabLibrary").addEventListener("click", openLibrarySheet);
+  document.getElementById("sidebarLibraryBtn").addEventListener("click", () => switchTab("library"));
   document.getElementById("sidebarNowPlayingBtn").addEventListener("click", () => switchTab("nowplaying"));
-  document.getElementById("sidebarLibraryBtn").addEventListener("click", openLibrarySheet);
 
   // ---------- playlists ----------
 
@@ -1243,6 +1387,20 @@
     return count || 0;
   }
 
+  async function getNextPositionForPlaylist(playlistId) {
+    if (playlistId === currentPlaylistId) {
+      return clips.length ? Math.max(...clips.map((c) => c.position)) + 1 : 0;
+    }
+    const { data, error } = await supabase
+      .from("clips")
+      .select("position")
+      .eq("playlist_id", playlistId)
+      .order("position", { ascending: false })
+      .limit(1);
+    if (error || !data || data.length === 0) return 0;
+    return data[0].position + 1;
+  }
+
   async function deletePlaylist(playlist) {
     if (playlists.length <= 1) {
       window.alert("You need at least one playlist — create another before deleting this one.");
@@ -1293,6 +1451,8 @@
     document.getElementById("statusLabel").textContent = "loading clips…";
 
     await loadClipsForCurrentPlaylist();
+    queue = clips;
+    queueSource = "playlist";
     if (clips.length > 0) currentId = clips[0].id;
     if (shuffleOn) regenerateShuffleOrder();
 
@@ -1347,7 +1507,16 @@
     await switchPlaylist(data.id);
   });
 
-  // ---------- rendering: queue ----------
+  // ---------- rendering: queue (playlists screen) ----------
+
+  function playFromPlaylist(id, autoplay) {
+    if (queueSource !== "playlist" || queue !== clips) {
+      queue = clips;
+      queueSource = "playlist";
+      if (shuffleOn) regenerateShuffleOrder();
+    }
+    loadClipById(id, autoplay);
+  }
 
   function renderQueue() {
     const q = document.getElementById("queueList");
@@ -1366,7 +1535,7 @@
 
     clips.forEach((c, i) => {
       const row = document.createElement("div");
-      row.className = "row" + (c.id === currentId ? " active" : "");
+      row.className = "row" + (queueSource === "playlist" && c.id === currentId ? " active" : "");
       row.dataset.id = c.id;
 
       const displayName = c.artist ? c.artist + " — " + c.name : c.name;
@@ -1389,7 +1558,7 @@
         "</button>";
 
       // click row -> load clip
-      row.addEventListener("click", () => loadClipById(c.id, true));
+      row.addEventListener("click", () => playFromPlaylist(c.id, true));
 
       // inline start/end editing
       row.querySelectorAll(".time-edit").forEach((span) => {
@@ -1577,7 +1746,7 @@
     if (shuffleOn) shuffleOrder = shuffleOrder.filter((sid) => sid !== id);
 
     if (clips.length === 0) {
-      currentId = null;
+      if (queueSource === "playlist") currentId = null;
       stopAndClearPlayer();
     } else if (id === currentId) {
       const newIdx = Math.min(idx, clips.length - 1);
@@ -1598,8 +1767,96 @@
     updateMiniPlayer();
   }
 
-  // ---------- clip library (sheet) ----------
+  // ---------- shared library data + add-to-playlist ----------
 
+  async function loadLibraryClips() {
+    const { data, error } = await supabase
+      .from("clip_library")
+      .select("*")
+      .order("last_used_at", { ascending: false });
+    if (error) throw error;
+    libraryClips = (data || []).map(rowToLibraryClip);
+  }
+
+  async function addLibraryEntryToPlaylist(entry, playlistId) {
+    const nextPosition = await getNextPositionForPlaylist(playlistId);
+    const { data, error } = await supabase
+      .from("clips")
+      .insert({
+        playlist_id: playlistId,
+        position: nextPosition,
+        name: entry.name,
+        artist: entry.artist || null,
+        video_id: entry.videoId,
+        start_seconds: entry.start,
+        end_seconds: entry.end
+      })
+      .select()
+      .single();
+
+    if (error) {
+      window.alert("Failed to add clip: " + error.message);
+      return null;
+    }
+
+    if (playlistId === currentPlaylistId) {
+      clips.push(rowToClip(data));
+      if (shuffleOn && queueSource === "playlist" && queue === clips) {
+        const insertAt = Math.floor(Math.random() * (shuffleOrder.length + 1));
+        shuffleOrder.splice(insertAt, 0, data.id);
+      }
+      renderQueue();
+      if (!currentId) {
+        queue = clips;
+        queueSource = "playlist";
+        currentId = data.id;
+      }
+      maybeInitPlayer();
+      updateMiniPlayer();
+    }
+
+    const now = new Date().toISOString();
+    entry.lastUsedAt = now;
+    supabase.from("clip_library").update({ last_used_at: now }).eq("id", entry.id).then(({ error: bumpError }) => {
+      if (bumpError) console.error("Failed to bump last_used_at", bumpError);
+    });
+
+    return data;
+  }
+
+  function openAddToPlaylistPicker(entry) {
+    const list = document.getElementById("addToPlaylistList");
+    list.innerHTML = "";
+    if (playlists.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No playlists yet — create one first";
+      list.appendChild(empty);
+    } else {
+      playlists.forEach((p) => {
+        const row = document.createElement("div");
+        row.className = "playlist-row";
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "playlist-name";
+        nameSpan.textContent = p.name;
+        row.appendChild(nameSpan);
+        row.addEventListener("click", async () => {
+          closeSheet(document.getElementById("addToPlaylistSheet"), document.getElementById("addToPlaylistBackdrop"));
+          await addLibraryEntryToPlaylist(entry, p.id);
+        });
+        list.appendChild(row);
+      });
+    }
+    openSheet(document.getElementById("addToPlaylistSheet"), document.getElementById("addToPlaylistBackdrop"));
+  }
+  document.getElementById("addToPlaylistCancelBtn").addEventListener("click", () =>
+    closeSheet(document.getElementById("addToPlaylistSheet"), document.getElementById("addToPlaylistBackdrop"))
+  );
+  wireSheetDismiss(document.getElementById("addToPlaylistSheet"), document.getElementById("addToPlaylistBackdrop"));
+
+  // ---------- library picker sheet (add from library into current playlist) ----------
+
+  document.getElementById("addFromLibraryBtn").addEventListener("click", openLibrarySheet);
   document.getElementById("librarySearch").addEventListener("input", (e) => renderLibraryList(e.target.value));
 
   async function openLibrarySheet() {
@@ -1611,14 +1868,8 @@
     document.getElementById("librarySearch").value = "";
     listEl.innerHTML = '<div class="empty-state">Loading…</div>';
     openSheet(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"));
-    syncNavActiveStates();
     try {
-      const { data, error } = await supabase
-        .from("clip_library")
-        .select("*")
-        .order("last_used_at", { ascending: false });
-      if (error) throw error;
-      libraryCache = data || [];
+      await loadLibraryClips();
     } catch (err) {
       listEl.innerHTML = '<div class="empty-state">Failed to load library: ' + escapeHtml(err.message) + "</div>";
       return;
@@ -1628,25 +1879,24 @@
 
   function closeLibrarySheet() {
     closeSheet(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"));
-    syncNavActiveStates();
   }
   document.getElementById("libraryCloseBtn").addEventListener("click", closeLibrarySheet);
-  wireSheetDismiss(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"), closeLibrarySheet);
+  wireSheetDismiss(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"));
 
   function renderLibraryList(filterText) {
     const listEl = document.getElementById("libraryList");
     const q = filterText.trim().toLowerCase();
     const items = q
-      ? libraryCache.filter((it) =>
+      ? libraryClips.filter((it) =>
           (it.name || "").toLowerCase().includes(q) || (it.artist || "").toLowerCase().includes(q)
         )
-      : libraryCache;
+      : libraryClips;
 
     listEl.innerHTML = "";
     if (items.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
-      empty.textContent = libraryCache.length ? "No matches" : "Library is empty — add a clip to populate it";
+      empty.textContent = libraryClips.length ? "No matches" : "Library is empty — add a clip to populate it";
       listEl.appendChild(empty);
       return;
     }
@@ -1656,64 +1906,129 @@
       row.className = "row";
       const displayName = entry.artist ? entry.artist + " — " + entry.name : entry.name;
       row.innerHTML =
-        '<img class="thumb" src="' + thumbUrl(entry.video_id) + '" alt="" loading="lazy">' +
+        '<img class="thumb" src="' + thumbUrl(entry.videoId) + '" alt="" loading="lazy">' +
         '<div class="info">' +
           '<div class="title">' + escapeHtml(displayName) + "</div>" +
-          '<div class="subtitle">' + fmt(entry.start_seconds) + " – " + fmt(entry.end_seconds) + "</div>" +
+          '<div class="subtitle">' + fmt(entry.start) + " – " + fmt(entry.end) + "</div>" +
         "</div>" +
         '<span class="add-check"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>';
-      row.addEventListener("click", () => addFromLibrary(entry, row));
+      row.addEventListener("click", () => addFromLibraryPicker(entry, row));
       listEl.appendChild(row);
     });
   }
 
-  async function addFromLibrary(entry, rowEl) {
+  async function addFromLibraryPicker(entry, rowEl) {
     if (!currentPlaylistId) return;
-    const nextPosition = clips.length ? Math.max(...clips.map((c) => c.position)) + 1 : 0;
-
-    const { data, error } = await supabase
-      .from("clips")
-      .insert({
-        playlist_id: currentPlaylistId,
-        position: nextPosition,
-        name: entry.name,
-        artist: entry.artist,
-        video_id: entry.video_id,
-        start_seconds: entry.start_seconds,
-        end_seconds: entry.end_seconds
-      })
-      .select()
-      .single();
-
-    if (error) {
-      window.alert("Failed to add clip: " + error.message);
-      return;
-    }
-
-    clips.push(rowToClip(data));
-    if (shuffleOn) {
-      const insertAt = Math.floor(Math.random() * (shuffleOrder.length + 1));
-      shuffleOrder.splice(insertAt, 0, data.id);
-    }
-    if (!currentId) currentId = data.id;
-    renderQueue();
-    maybeInitPlayer();
-    updateMiniPlayer();
-
+    const data = await addLibraryEntryToPlaylist(entry, currentPlaylistId);
+    if (!data) return;
     if (rowEl) {
       rowEl.classList.add("added");
       setTimeout(() => rowEl.classList.remove("added"), 1200);
     }
-
-    const now = new Date().toISOString();
-    entry.last_used_at = now;
-    const { error: bumpError } = await supabase.from("clip_library").update({ last_used_at: now }).eq("id", entry.id);
-    if (bumpError) console.error("Failed to bump last_used_at", bumpError);
   }
 
-  // ---------- add clip sheet ----------
+  // ---------- library page (standalone) ----------
 
-  document.getElementById("addClipBtn").addEventListener("click", () => {
+  async function openLibraryPage() {
+    const listEl = document.getElementById("libraryPageList");
+    listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+    try {
+      await loadLibraryClips();
+    } catch (err) {
+      listEl.innerHTML = '<div class="empty-state">Failed to load library: ' + escapeHtml(err.message) + "</div>";
+      return;
+    }
+    renderLibraryPage(currentLibrarySearch);
+  }
+
+  document.getElementById("libraryPageSearch").addEventListener("input", (e) => {
+    currentLibrarySearch = e.target.value;
+    renderLibraryPage(currentLibrarySearch);
+  });
+
+  function renderLibraryPage(filterText) {
+    const listEl = document.getElementById("libraryPageList");
+    const q = (filterText || "").trim().toLowerCase();
+    const items = q
+      ? libraryClips.filter((it) =>
+          (it.name || "").toLowerCase().includes(q) || (it.artist || "").toLowerCase().includes(q)
+        )
+      : libraryClips;
+
+    document.getElementById("libraryCountLabel").textContent = libraryClips.length
+      ? libraryClips.length + (libraryClips.length === 1 ? " clip" : " clips")
+      : "";
+    document.getElementById("playAllBtn").style.display = libraryClips.length ? "flex" : "none";
+
+    listEl.innerHTML = "";
+    if (items.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = libraryClips.length ? "No matches" : "Library is empty — add a clip to get started";
+      listEl.appendChild(empty);
+      return;
+    }
+
+    items.forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "row" + (queueSource === "library" && entry.id === currentId ? " active" : "");
+      const displayName = entry.artist ? entry.artist + " — " + entry.name : entry.name;
+      row.innerHTML =
+        '<img class="thumb" src="' + thumbUrl(entry.videoId) + '" alt="" loading="lazy">' +
+        '<div class="info">' +
+          '<div class="title">' + escapeHtml(displayName) + "</div>" +
+          '<div class="subtitle">' + fmt(entry.start) + " – " + fmt(entry.end) + "</div>" +
+        "</div>" +
+        '<button class="trailing-btn" title="More">' +
+          '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>' +
+        "</button>";
+      row.addEventListener("click", () => playLibraryEntry(entry.id));
+      row.querySelector(".trailing-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        openLibraryRowActions(entry);
+      });
+      listEl.appendChild(row);
+    });
+  }
+
+  function openLibraryRowActions(entry) {
+    document.getElementById("actionSheetTitle").textContent = entry.name;
+    const list = document.getElementById("actionList");
+    list.innerHTML = "";
+    const addBtn = document.createElement("button");
+    addBtn.className = "action-btn";
+    addBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h9M8 18h5"/><path d="M3 6h.01M3 12h.01M20 16v6M17 19h6"/></svg> Add to Playlist';
+    addBtn.addEventListener("click", () => {
+      closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+      openAddToPlaylistPicker(entry);
+    });
+    list.appendChild(addBtn);
+    openSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+  }
+
+  function playLibraryEntry(id) {
+    if (queueSource !== "library" || queue !== libraryClips) {
+      queue = libraryClips;
+      queueSource = "library";
+      if (shuffleOn) regenerateShuffleOrder();
+    }
+    loadClipById(id, true);
+  }
+
+  function playAllLibrary() {
+    if (libraryClips.length === 0) return;
+    queue = libraryClips;
+    queueSource = "library";
+    if (shuffleOn) regenerateShuffleOrder();
+    loadClipById(libraryClips[0].id, true);
+  }
+  document.getElementById("playAllBtn").addEventListener("click", playAllLibrary);
+
+  // ---------- add clip sheet (shared: playlist context or library context) ----------
+
+  function openAddClipSheetUI() {
+    document.getElementById("addClipTitle").textContent = addClipContext === "library" ? "Add to Library" : "Add Clip";
+    document.getElementById("addBtn").textContent = addClipContext === "library" ? "Add to Library" : "Add to Queue";
     document.getElementById("addStatus").className = "status-line";
     document.getElementById("addStatus").textContent = "";
     document.getElementById("urlInput").value = "";
@@ -1721,7 +2036,17 @@
     document.getElementById("endInput").value = "";
     openSheet(document.getElementById("addClipSheet"), document.getElementById("addClipBackdrop"));
     setTimeout(() => document.getElementById("urlInput").focus(), 260);
+  }
+
+  document.getElementById("addClipBtn").addEventListener("click", () => {
+    addClipContext = "playlist";
+    openAddClipSheetUI();
   });
+  document.getElementById("libraryAddClipBtn").addEventListener("click", () => {
+    addClipContext = "library";
+    openAddClipSheetUI();
+  });
+
   function closeAddClipSheet() {
     closeSheet(document.getElementById("addClipSheet"), document.getElementById("addClipBackdrop"));
   }
@@ -1739,7 +2064,7 @@
     statusEl.className = "status-line";
     statusEl.textContent = "";
 
-    if (!currentPlaylistId) {
+    if (addClipContext === "playlist" && !currentPlaylistId) {
       statusEl.className = "status-line error";
       statusEl.textContent = "create a playlist first";
       return;
@@ -1795,6 +2120,23 @@
     );
     if (libError) console.error("Failed to upsert clip_library", libError);
 
+    if (addClipContext === "library") {
+      addBtn.disabled = false;
+      if (libError) {
+        statusEl.className = "status-line error";
+        statusEl.textContent = "failed to add: " + libError.message;
+        return;
+      }
+      statusEl.className = "status-line ok";
+      statusEl.textContent = "added “" + name + "” to library";
+      if (activeTab === "library") {
+        await loadLibraryClips();
+        renderLibraryPage(currentLibrarySearch);
+      }
+      setTimeout(closeAddClipSheet, 500);
+      return;
+    }
+
     const nextPosition = clips.length
       ? Math.max(...clips.map((c) => c.position)) + 1
       : 0;
@@ -1822,11 +2164,15 @@
     }
 
     clips.push(rowToClip(data));
-    if (shuffleOn) {
+    if (shuffleOn && queueSource === "playlist" && queue === clips) {
       const insertAt = Math.floor(Math.random() * (shuffleOrder.length + 1));
       shuffleOrder.splice(insertAt, 0, data.id);
     }
-    if (!currentId) currentId = data.id;
+    if (!currentId) {
+      queue = clips;
+      queueSource = "playlist";
+      currentId = data.id;
+    }
     statusEl.className = "status-line ok";
     statusEl.textContent = "added “" + name + "”";
     renderQueue();
@@ -1847,42 +2193,47 @@
   }
 
   function regenerateShuffleOrder() {
-    shuffleOrder = shuffleArray(clips.map((c) => c.id));
+    shuffleOrder = shuffleArray(queue.map((c) => c.id));
   }
 
   function getQueuePosition() {
-    if (shuffleOn && shuffleOrder.length === clips.length && clips.length > 0) {
+    if (shuffleOn && shuffleOrder.length === queue.length && queue.length > 0) {
       let pos = shuffleOrder.indexOf(currentId);
       if (pos === -1) pos = 0;
       return { order: shuffleOrder, pos };
     }
-    const order = clips.map((c) => c.id);
+    const order = queue.map((c) => c.id);
     let pos = getCurrentIndex();
     if (pos === -1) pos = 0;
     return { order, pos };
   }
 
   function loadClipById(id, autoplay) {
-    const c = clips.find((cl) => cl.id === id);
+    const c = queue.find((cl) => cl.id === id);
     if (!c) return;
     currentId = c.id;
     renderQueue();
+    renderLibraryPage(currentLibrarySearch);
     updateMiniPlayer();
-    if (player && player.loadVideoById) {
+    if (!player) {
+      maybeInitPlayer(autoplay);
+      return;
+    }
+    if (player.loadVideoById) {
       player.loadVideoById({ videoId: c.videoId, startSeconds: c.start });
       if (!autoplay) player.pauseVideo();
     }
   }
 
   function playNext() {
-    if (clips.length === 0) return;
+    if (queue.length === 0) return;
     const { order, pos } = getQueuePosition();
     let newPos = pos + 1;
     let autoplay = true;
 
     if (newPos >= order.length) {
       if (repeatMode === "playlist") {
-        if (shuffleOn) shuffleOrder = shuffleArray(clips.map((c) => c.id));
+        if (shuffleOn) shuffleOrder = shuffleArray(queue.map((c) => c.id));
         newPos = 0;
         autoplay = true;
       } else {
@@ -1892,12 +2243,12 @@
       }
     }
 
-    const targetOrder = shuffleOn && shuffleOrder.length === clips.length ? shuffleOrder : order;
+    const targetOrder = shuffleOn && shuffleOrder.length === queue.length ? shuffleOrder : order;
     loadClipById(targetOrder[newPos], autoplay);
   }
 
   function playPrev() {
-    if (clips.length === 0) return;
+    if (queue.length === 0) return;
     const { order, pos } = getQueuePosition();
     let newPos = pos - 1;
     if (newPos < 0) newPos = order.length - 1;
@@ -1936,14 +2287,14 @@
     updateShuffleButtonUI();
   });
 
-  function maybeInitPlayer() {
-    if (!apiReady || !dataReady || player || clips.length === 0) return;
+  function maybeInitPlayer(autoplay) {
+    if (!apiReady || !dataReady || player || queue.length === 0) return;
     let idx = getCurrentIndex();
-    if (idx === -1) { idx = 0; currentId = clips[0].id; }
-    const c = clips[idx];
+    if (idx === -1) { idx = 0; currentId = queue[0].id; }
+    const c = queue[idx];
     player = new YT.Player("player", {
       videoId: c.videoId,
-      playerVars: { start: Math.floor(c.start), rel: 0, modestbranding: 1 },
+      playerVars: { start: Math.floor(c.start), rel: 0, modestbranding: 1, autoplay: autoplay ? 1 : 0 },
       events: {
         onReady: () => {
           document.getElementById("statusLabel").textContent = "ready — press play";
@@ -1981,7 +2332,7 @@
       if (!player || !player.getCurrentTime) return;
       const idx = getCurrentIndex();
       if (idx === -1) return;
-      const c = clips[idx];
+      const c = queue[idx];
       const t = player.getCurrentTime();
       const dur = c.end - c.start;
       const elapsed = Math.max(0, t - c.start);
@@ -2025,7 +2376,7 @@
     if (idx === -1) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
-    const c = clips[idx];
+    const c = queue[idx];
     const target = c.start + pct * (c.end - c.start);
     player.seekTo(target, true);
   });
@@ -2041,7 +2392,7 @@
       mini.hidden = true;
       return;
     }
-    const c = clips[idx];
+    const c = queue[idx];
     document.getElementById("miniThumb").src = thumbUrl(c.videoId);
     document.getElementById("miniTitle").textContent = c.artist ? c.artist + " — " + c.name : c.name;
     document.getElementById("nowLabel").textContent = c.name;
@@ -2090,6 +2441,8 @@
     refreshPlaylistUI();
 
     await loadClipsForCurrentPlaylist();
+    queue = clips;
+    queueSource = "playlist";
     if (clips.length > 0) currentId = clips[0].id;
     if (shuffleOn) regenerateShuffleOrder();
     dataReady = true;
