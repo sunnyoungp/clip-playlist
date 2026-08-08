@@ -49,6 +49,64 @@
     font-size: 12px;
     color: var(--text-dim);
   }
+  .playlist-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .playlist-select {
+    flex: 1;
+    min-width: 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 7px 8px;
+  }
+  .playlist-select:focus { outline: none; border-color: var(--amber-dim); }
+  .playlist-bar button {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 14px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .playlist-bar button:hover { border-color: var(--amber-dim); color: var(--amber); }
+  .new-playlist-form {
+    display: flex;
+    gap: 8px;
+    margin: -12px 0 20px;
+  }
+  .new-playlist-form[hidden] { display: none; }
+  .new-playlist-form input {
+    flex: 1;
+    min-width: 0;
+    background: var(--panel);
+    border: 1px solid var(--amber-dim);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 7px 8px;
+  }
+  .new-playlist-form input:focus { outline: none; }
+  .new-playlist-form button {
+    background: none;
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
+    font-family: inherit;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0 12px;
+    cursor: pointer;
+  }
+  .new-playlist-form button:hover { background: var(--amber-dim); color: var(--bg); }
   .video-wrap {
     position: relative;
     width: 100%;
@@ -224,14 +282,32 @@
     padding-top: 16px;
     margin-top: 20px;
   }
+  .add-clip-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
   .add-clip .section-label {
     font-size: 11px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--amber);
-    margin: 0 0 12px;
+    margin: 0;
     font-weight: normal;
   }
+  .library-link {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .library-link:hover { border-color: var(--amber-dim); color: var(--amber); }
   .add-clip form {
     display: flex;
     flex-direction: column;
@@ -289,6 +365,97 @@
     margin-top: 20px;
     letter-spacing: 0.06em;
   }
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 9, 7, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10;
+  }
+  .modal-overlay[hidden] { display: none; }
+  .modal {
+    width: 100%;
+    max-width: 480px;
+    max-height: 80vh;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .modal-header .section-label { margin: 0; }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .modal-close:hover { color: var(--danger); }
+  .modal input.library-search {
+    margin: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 9px;
+    flex-shrink: 0;
+  }
+  .modal input.library-search:focus { outline: none; border-color: var(--amber-dim); }
+  .library-list {
+    overflow-y: auto;
+    padding: 0 16px 16px;
+  }
+  .library-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .library-item:hover { background: var(--bg); }
+  .library-item:last-child { border-bottom: none; }
+  .library-item .info { flex: 1; min-width: 0; }
+  .library-item .name {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .library-item .meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .library-item .add-mark {
+    font-size: 11px;
+    color: var(--amber);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .library-item.added .add-mark { opacity: 1; }
+  .library-empty {
+    padding: 20px 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -298,6 +465,15 @@
     <h1>Clip playlist</h1>
     <span class="count" id="countLabel">0 / 0</span>
   </div>
+
+  <div class="playlist-bar">
+    <select id="playlistSelect" class="playlist-select"></select>
+    <button type="button" id="newPlaylistBtn" title="New playlist">+</button>
+  </div>
+  <form id="newPlaylistForm" class="new-playlist-form" hidden>
+    <input type="text" id="newPlaylistInput" placeholder="playlist name" autocomplete="off">
+    <button type="submit">Create</button>
+  </form>
 
   <div class="video-wrap">
     <div id="player"></div>
@@ -326,7 +502,10 @@
   <div class="queue" id="queue"></div>
 
   <div class="add-clip">
-    <h2 class="section-label">Add clip</h2>
+    <div class="add-clip-head">
+      <h2 class="section-label">Add clip</h2>
+      <button type="button" id="openLibraryBtn" class="library-link">from library</button>
+    </div>
     <form id="addClipForm">
       <div class="field">
         <label for="urlInput">YouTube URL</label>
@@ -348,6 +527,17 @@
   </div>
 
   <div class="status" id="statusLabel">loading...</div>
+
+  <div class="modal-overlay" id="libraryModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="section-label">Clip library</h2>
+        <button type="button" class="modal-close" id="libraryCloseBtn" title="Close">&#10005;</button>
+      </div>
+      <input type="text" id="librarySearch" class="library-search" placeholder="search name or artist…" autocomplete="off">
+      <div class="library-list" id="libraryList"></div>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -355,12 +545,15 @@
 
   const SUPABASE_URL = "https://ebzwftobzslvgwxwztqg.supabase.co";
   const SUPABASE_KEY = "sb_publishable_VQfWQsKmOWRYr4vGw6UTwQ_T9ezfT3b";
-  const PLAYLIST_ID = "default";
+  const LS_KEY = "clipPlaylist:lastPlaylistId";
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  let clips = [];       // { id, name, artist, videoId, start, end, position }
-  let currentId = null; // id of the clip currently loaded in the player
+  let playlists = [];         // { id, name, created_at }
+  let currentPlaylistId = null;
+  let clips = [];              // { id, name, artist, videoId, start, end, position }
+  let currentId = null;        // id of the clip currently loaded in the player
+  let libraryCache = [];
   let player = null;
   let apiReady = false;
   let dataReady = false;
@@ -458,6 +651,71 @@
     return clips.findIndex((c) => c.id === currentId);
   }
 
+  // ---------- playlists ----------
+
+  async function loadPlaylists() {
+    const { data, error } = await supabase.from("playlists").select("*").order("created_at", { ascending: true });
+    if (error) throw error;
+    playlists = data || [];
+  }
+
+  function renderPlaylistBar() {
+    const sel = document.getElementById("playlistSelect");
+    if (playlists.length === 0) {
+      sel.innerHTML = '<option value="">no playlists yet</option>';
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML = playlists
+      .map((p) => '<option value="' + p.id + '"' + (p.id === currentPlaylistId ? " selected" : "") + ">" + escapeHtml(p.name) + "</option>")
+      .join("");
+  }
+
+  async function loadClipsForCurrentPlaylist() {
+    if (!currentPlaylistId) { clips = []; return; }
+    const { data, error } = await supabase
+      .from("clips")
+      .select("*")
+      .eq("playlist_id", currentPlaylistId)
+      .order("position", { ascending: true });
+    if (error) {
+      console.error("Failed to load clips", error);
+      clips = [];
+      document.getElementById("statusLabel").textContent = "failed to load clips: " + error.message;
+      return;
+    }
+    clips = (data || []).map(rowToClip);
+  }
+
+  async function switchPlaylist(playlistId) {
+    if (!playlistId || playlistId === currentPlaylistId) return;
+    currentPlaylistId = playlistId;
+    localStorage.setItem(LS_KEY, playlistId);
+    currentId = null;
+    document.getElementById("statusLabel").textContent = "loading clips…";
+
+    await loadClipsForCurrentPlaylist();
+    if (clips.length > 0) currentId = clips[0].id;
+
+    if (player) {
+      if (clips.length > 0) {
+        const c = clips[0];
+        player.loadVideoById({ videoId: c.videoId, startSeconds: c.start });
+        player.pauseVideo();
+        document.getElementById("statusLabel").textContent = "ready — press play";
+      } else {
+        stopAndClearPlayer();
+      }
+    } else {
+      maybeInitPlayer();
+      if (clips.length === 0) document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
+    }
+
+    renderPlaylistBar();
+    renderQueue();
+  }
+
   // ---------- rendering ----------
 
   function renderQueue() {
@@ -467,7 +725,7 @@
     if (clips.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-queue";
-      empty.textContent = "no clips yet — add one below";
+      empty.textContent = playlists.length === 0 ? "create a playlist to get started" : "no clips yet — add one below";
       q.appendChild(empty);
     }
 
@@ -676,6 +934,159 @@
     document.getElementById("clipProgressFill").style.width = "0%";
   }
 
+  // ---------- new playlist form ----------
+
+  const newPlaylistBtn = document.getElementById("newPlaylistBtn");
+  const newPlaylistForm = document.getElementById("newPlaylistForm");
+  const newPlaylistInput = document.getElementById("newPlaylistInput");
+
+  newPlaylistBtn.addEventListener("click", () => {
+    if (newPlaylistForm.hasAttribute("hidden")) {
+      newPlaylistForm.removeAttribute("hidden");
+      newPlaylistInput.value = "";
+      newPlaylistInput.focus();
+    } else {
+      newPlaylistForm.setAttribute("hidden", "");
+    }
+  });
+
+  newPlaylistInput.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") newPlaylistForm.setAttribute("hidden", "");
+  });
+
+  newPlaylistForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = newPlaylistInput.value.trim();
+    if (!name) return;
+    const submitBtn = newPlaylistForm.querySelector("button");
+    submitBtn.disabled = true;
+    const { data, error } = await supabase.from("playlists").insert({ name }).select().single();
+    submitBtn.disabled = false;
+    if (error) {
+      window.alert("Failed to create playlist: " + error.message);
+      return;
+    }
+    playlists.push(data);
+    newPlaylistForm.setAttribute("hidden", "");
+    await switchPlaylist(data.id);
+  });
+
+  document.getElementById("playlistSelect").addEventListener("change", (e) => {
+    switchPlaylist(e.target.value);
+  });
+
+  // ---------- clip library ----------
+
+  const libraryModal = document.getElementById("libraryModal");
+  const libraryList = document.getElementById("libraryList");
+  const librarySearch = document.getElementById("librarySearch");
+
+  document.getElementById("openLibraryBtn").addEventListener("click", openLibrary);
+  document.getElementById("libraryCloseBtn").addEventListener("click", closeLibrary);
+  libraryModal.addEventListener("click", (e) => { if (e.target === libraryModal) closeLibrary(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !libraryModal.hasAttribute("hidden")) closeLibrary();
+  });
+  librarySearch.addEventListener("input", () => renderLibraryList(librarySearch.value));
+
+  async function openLibrary() {
+    if (!currentPlaylistId) {
+      window.alert("Create a playlist first.");
+      return;
+    }
+    libraryModal.removeAttribute("hidden");
+    librarySearch.value = "";
+    libraryList.innerHTML = '<div class="library-empty">loading…</div>';
+    try {
+      const { data, error } = await supabase
+        .from("clip_library")
+        .select("*")
+        .order("last_used_at", { ascending: false });
+      if (error) throw error;
+      libraryCache = data || [];
+    } catch (err) {
+      libraryList.innerHTML = '<div class="library-empty">failed to load library: ' + escapeHtml(err.message) + "</div>";
+      return;
+    }
+    renderLibraryList("");
+    librarySearch.focus();
+  }
+
+  function closeLibrary() {
+    libraryModal.setAttribute("hidden", "");
+  }
+
+  function renderLibraryList(filterText) {
+    const q = filterText.trim().toLowerCase();
+    const items = q
+      ? libraryCache.filter((it) =>
+          (it.name || "").toLowerCase().includes(q) || (it.artist || "").toLowerCase().includes(q)
+        )
+      : libraryCache;
+
+    libraryList.innerHTML = "";
+    if (items.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "library-empty";
+      empty.textContent = libraryCache.length ? "no matches" : "library is empty — add a clip to populate it";
+      libraryList.appendChild(empty);
+      return;
+    }
+
+    items.forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "library-item";
+      const displayName = entry.artist ? entry.artist + " — " + entry.name : entry.name;
+      row.innerHTML =
+        '<div class="info">' +
+          '<div class="name">' + escapeHtml(displayName) + "</div>" +
+          '<div class="meta">' + fmt(entry.start_seconds) + " – " + fmt(entry.end_seconds) + "</div>" +
+        "</div>" +
+        '<span class="add-mark">added &#10003;</span>';
+      row.addEventListener("click", () => addFromLibrary(entry, row));
+      libraryList.appendChild(row);
+    });
+  }
+
+  async function addFromLibrary(entry, rowEl) {
+    if (!currentPlaylistId) return;
+    const nextPosition = clips.length ? Math.max(...clips.map((c) => c.position)) + 1 : 0;
+
+    const { data, error } = await supabase
+      .from("clips")
+      .insert({
+        playlist_id: currentPlaylistId,
+        position: nextPosition,
+        name: entry.name,
+        artist: entry.artist,
+        video_id: entry.video_id,
+        start_seconds: entry.start_seconds,
+        end_seconds: entry.end_seconds
+      })
+      .select()
+      .single();
+
+    if (error) {
+      window.alert("Failed to add clip: " + error.message);
+      return;
+    }
+
+    clips.push(rowToClip(data));
+    if (!currentId) currentId = data.id;
+    renderQueue();
+    maybeInitPlayer();
+
+    if (rowEl) {
+      rowEl.classList.add("added");
+      setTimeout(() => rowEl.classList.remove("added"), 1200);
+    }
+
+    const now = new Date().toISOString();
+    entry.last_used_at = now;
+    const { error: bumpError } = await supabase.from("clip_library").update({ last_used_at: now }).eq("id", entry.id);
+    if (bumpError) console.error("Failed to bump last_used_at", bumpError);
+  }
+
   // ---------- add clip form ----------
 
   document.getElementById("addClipForm").addEventListener("submit", async (e) => {
@@ -688,6 +1099,12 @@
 
     statusEl.className = "add-status";
     statusEl.textContent = "";
+
+    if (!currentPlaylistId) {
+      statusEl.className = "add-status error";
+      statusEl.textContent = "create a playlist first";
+      return;
+    }
 
     const videoId = extractVideoId(urlInput.value);
     if (!videoId) {
@@ -725,6 +1142,20 @@
       console.warn("oEmbed lookup failed, using fallback title", err);
     }
 
+    const nowIso = new Date().toISOString();
+    const { error: libError } = await supabase.from("clip_library").upsert(
+      {
+        video_id: videoId,
+        start_seconds: start,
+        end_seconds: end,
+        name,
+        artist: artist || null,
+        last_used_at: nowIso
+      },
+      { onConflict: "video_id,start_seconds,end_seconds" }
+    );
+    if (libError) console.error("Failed to upsert clip_library", libError);
+
     const nextPosition = clips.length
       ? Math.max(...clips.map((c) => c.position)) + 1
       : 0;
@@ -732,7 +1163,7 @@
     const { data, error } = await supabase
       .from("clips")
       .insert({
-        playlist_id: PLAYLIST_ID,
+        playlist_id: currentPlaylistId,
         position: nextPosition,
         name,
         artist: artist || null,
@@ -867,26 +1298,39 @@
   // ---------- init ----------
 
   async function init() {
-    document.getElementById("statusLabel").textContent = "loading clips…";
+    document.getElementById("statusLabel").textContent = "loading…";
     try {
-      const { data, error } = await supabase
-        .from("clips")
-        .select("*")
-        .eq("playlist_id", PLAYLIST_ID)
-        .order("position", { ascending: true });
-      if (error) throw error;
-      clips = (data || []).map(rowToClip);
-      if (clips.length > 0) currentId = clips[0].id;
-      document.getElementById("statusLabel").textContent = clips.length
-        ? "ready — press play"
-        : "queue is empty — add a clip below";
+      await loadPlaylists();
     } catch (err) {
-      console.error("Failed to load clips", err);
-      document.getElementById("statusLabel").textContent = "failed to load clips: " + err.message;
+      console.error("Failed to load playlists", err);
+      document.getElementById("statusLabel").textContent = "failed to load playlists: " + err.message;
+      dataReady = true;
+      renderPlaylistBar();
+      renderQueue();
+      return;
     }
+
+    if (playlists.length === 0) {
+      dataReady = true;
+      renderPlaylistBar();
+      renderQueue();
+      document.getElementById("statusLabel").textContent = "no playlists yet — create one above";
+      return;
+    }
+
+    const saved = localStorage.getItem(LS_KEY);
+    currentPlaylistId = playlists.some((p) => p.id === saved) ? saved : playlists[0].id;
+    localStorage.setItem(LS_KEY, currentPlaylistId);
+    renderPlaylistBar();
+
+    await loadClipsForCurrentPlaylist();
+    if (clips.length > 0) currentId = clips[0].id;
     dataReady = true;
     renderQueue();
     maybeInitPlayer();
+    document.getElementById("statusLabel").textContent = clips.length
+      ? "ready — press play"
+      : "queue is empty — add a clip below";
   }
 
   init();
