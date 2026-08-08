@@ -41,16 +41,136 @@
     -webkit-font-smoothing: antialiased;
   }
   button, input { font-family: inherit; }
-  button { -webkit-appearance: none; }
+  button { -webkit-appearance: none; color: inherit; }
   img { display: block; }
 
-  .app {
+  .app-shell {
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
     background: var(--bg);
     position: relative;
   }
+
+  /* ---------- sidebar (desktop) ---------- */
+  .sidebar {
+    display: none;
+    flex-direction: column;
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--row);
+    border-right: 0.5px solid var(--hairline);
+    padding: 22px 12px;
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+  .sidebar-title {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    padding: 4px 10px 22px;
+  }
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 500;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 120ms, transform 100ms ease-out;
+  }
+  .sidebar-nav-item:hover { background: var(--track); }
+  .sidebar-nav-item.active { background: var(--track); color: var(--accent); }
+  .sidebar-nav-item:active { transform: scale(0.99); }
+  .sidebar-nav-item svg { flex-shrink: 0; }
+  .sidebar-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    margin: 18px 10px 6px;
+  }
+  .sidebar-playlist-list { display: flex; flex-direction: column; gap: 1px; }
+
+  .list-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 6px;
+    text-align: left;
+    transition: background 120ms, transform 100ms ease-out;
+  }
+  .list-add-btn:hover { background: var(--track); }
+  .list-add-btn:active { transform: scale(0.99); }
+
+  /* ---------- playlist rows (shared by sidebar + mobile picker sheet) ---------- */
+  .playlist-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 120ms, transform 100ms ease-out;
+  }
+  .playlist-row:hover { background: var(--track); }
+  .playlist-row.active { background: var(--track); }
+  .playlist-row.active .playlist-name { color: var(--accent); font-weight: 600; }
+  .playlist-row:active { transform: scale(0.99); }
+  .playlist-row .playlist-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .playlist-row .row-check { color: var(--accent); flex-shrink: 0; display: flex; }
+  .playlist-row .row-more-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .playlist-row .row-more-btn:hover { color: var(--text); background: rgba(120, 120, 128, 0.16); }
+  .playlist-row input.inline-rename-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 4px 7px;
+  }
+  .playlist-row input.inline-rename-input.invalid { border-color: var(--danger); }
 
   /* ---------- screens ---------- */
   .screen {
@@ -66,7 +186,31 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 0 14px;
+    gap: 12px;
   }
+  .title-switcher {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .title-switcher h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+  }
+  .title-switcher .chev-down { color: var(--text-secondary); flex-shrink: 0; margin-top: 5px; }
+  .title-switcher:active { opacity: 0.7; }
   .nav-header h1 {
     font-size: 32px;
     font-weight: 700;
@@ -99,74 +243,6 @@
     margin: 20px 0 8px;
   }
 
-  /* ---------- playlist switcher ---------- */
-  .switcher-row-wrap { display: flex; align-items: center; gap: 8px; padding: 2px 0 18px; }
-  .segmented {
-    flex: 1;
-    display: flex;
-    gap: 2px;
-    background: var(--track);
-    border-radius: 10px;
-    padding: 2px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .segmented::-webkit-scrollbar { display: none; }
-  .segment {
-    flex: 1;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-    padding: 7px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 150ms, color 150ms, transform 100ms ease-out;
-  }
-  .segment.active {
-    background: var(--row);
-    color: var(--text);
-    font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  }
-  .segment:active { transform: scale(0.97); }
-  .circle-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: none;
-    background: var(--row);
-    color: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    box-shadow: var(--shadow);
-    transition: transform 100ms ease-out;
-  }
-  .circle-btn:active { transform: scale(0.94); }
-
-  .switcher-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    background: var(--row);
-    border: none;
-    border-radius: 12px;
-    padding: 13px 14px;
-    color: var(--text);
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: transform 100ms ease-out;
-  }
-  .switcher-row:active { transform: scale(0.98); }
-  .switcher-row .chev { color: var(--text-secondary); flex-shrink: 0; }
-
   /* ---------- list rows ---------- */
   .list-meta { font-size: 13px; color: var(--text-secondary); margin: -8px 0 4px; }
   .row {
@@ -175,8 +251,10 @@
     gap: 12px;
     padding: 11px 2px;
     cursor: pointer;
-    transition: transform 100ms ease-out;
+    border-radius: 8px;
+    transition: transform 100ms ease-out, background 120ms;
   }
+  .row:hover { background: var(--track); }
   .row:active { transform: scale(0.99); }
   .row.drag-over { box-shadow: inset 0 2px 0 var(--accent); }
   .row.dragging { opacity: 0.4; }
@@ -515,189 +593,252 @@
   .action-btn.danger { color: var(--danger); }
   .action-btn:disabled { opacity: 0.3; }
   .action-btn:active:not(:disabled) { background: var(--track); }
+
+  /* ---------- desktop layout (>= 900px) ---------- */
+  @media (min-width: 900px) {
+    .app-shell {
+      max-width: 1280px;
+      display: flex;
+      align-items: flex-start;
+    }
+    .sidebar { display: flex; }
+    .tab-bar { display: none; }
+    .screen { padding: 0 40px 110px; max-width: 900px; }
+    .title-switcher { cursor: default; }
+    .title-switcher .chev-down { display: none; }
+    .row { padding: 13px 6px; gap: 14px; }
+    .row .thumb { width: 52px; height: 52px; border-radius: 10px; }
+    .row .title { font-size: 16px; }
+    .row .subtitle { font-size: 13px; }
+    .mini-player {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transform: none;
+      width: 100%;
+      max-width: none;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      padding: 14px 32px;
+      gap: 18px;
+    }
+    .mini-player .thumb { width: 44px; height: 44px; border-radius: 8px; }
+    .mini-player .title { font-size: 15px; }
+    .mini-player .info { max-width: 420px; flex: 0 1 auto; }
+  }
 </style>
 </head>
 <body>
 
-<div class="app">
+<div class="app-shell">
 
-  <!-- ============ PLAYLISTS SCREEN ============ -->
-  <section class="screen active" id="screen-playlists">
-    <div class="nav-header">
-      <h1>Playlists</h1>
-      <button class="nav-action" id="addClipBtn" title="Add clip">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-    </div>
-
-    <div class="switcher-row-wrap" id="switcherWrap"></div>
-
-    <div class="list-meta" id="countLabel"></div>
-    <div class="list" id="queueList"></div>
-  </section>
-
-  <!-- ============ NOW PLAYING SCREEN ============ -->
-  <section class="screen" id="screen-nowplaying">
-    <div class="nav-header">
-      <h1>Now Playing</h1>
-    </div>
-
-    <div class="np-art"><div id="player"></div></div>
-
-    <div class="np-meta">
-      <div class="np-title" id="nowLabel">&mdash;</div>
-      <div class="np-artist" id="nowArtistLabel">&nbsp;</div>
-    </div>
-
-    <div class="np-progress-track" id="clipProgress">
-      <div class="np-progress-fill" id="clipProgressFill"></div>
-    </div>
-    <div class="np-time-row">
-      <span id="elapsedLabel">0:00</span>
-      <span id="durationLabel">0:00</span>
-    </div>
-
-    <div class="np-transport">
-      <button id="prevBtn" title="Previous clip">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M11 6L4 12l7 6V6zM20 6l-7 6 7 6V6z"/></svg>
-      </button>
-      <button id="playBtn" title="Play/Pause">
-        <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
-      </button>
-      <button id="nextBtn" title="Next clip">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg>
-      </button>
-    </div>
-
-    <div class="np-toggles">
-      <button id="autoBtn" class="pill-toggle on">Auto-advance</button>
-      <button id="loopBtn" class="pill-toggle">Loop clip</button>
-    </div>
-
-    <div class="np-status" id="statusLabel">loading…</div>
-  </section>
-
-  <!-- ============ MINI PLAYER ============ -->
-  <div class="mini-player" id="miniPlayer" hidden>
-    <div class="mini-progress" id="miniProgressFill"></div>
-    <img class="thumb" id="miniThumb" alt="">
-    <div class="info">
-      <div class="title" id="miniTitle">&mdash;</div>
-    </div>
-    <button id="miniPlayBtn" title="Play/Pause">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" id="miniPlayIcon"><path d="M8 5v14l11-7z"/></svg>
-    </button>
-    <button id="miniNextBtn" title="Next clip">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg>
-    </button>
-  </div>
-
-  <!-- ============ TAB BAR ============ -->
-  <nav class="tab-bar">
-    <button class="tab-item active" id="tabPlaylists" data-tab="playlists">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-      <span>Playlists</span>
-    </button>
-    <button class="tab-item" id="tabLibrary" data-tab="library">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+  <!-- ============ SIDEBAR (desktop) ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">Clip Playlist</div>
+    <button class="sidebar-nav-item" id="sidebarLibraryBtn" type="button">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
       <span>Library</span>
     </button>
-    <button class="tab-item" id="tabNowPlaying" data-tab="nowplaying">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12v0M8 8v8M12 5v14M16 8v8M20 12v0"/></svg>
+    <button class="sidebar-nav-item" id="sidebarNowPlayingBtn" type="button">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12v0M8 8v8M12 5v14M16 8v8M20 12v0"/></svg>
       <span>Now Playing</span>
     </button>
-  </nav>
+    <div class="sidebar-section-label">Playlists</div>
+    <div class="sidebar-playlist-list" id="sidebarPlaylistList"></div>
+    <button class="list-add-btn" id="sidebarNewPlaylistBtn" type="button">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>New Playlist</span>
+    </button>
+  </aside>
 
-  <!-- ============ ADD CLIP SHEET ============ -->
-  <div class="sheet-backdrop" id="addClipBackdrop"></div>
-  <div class="sheet" id="addClipSheet">
-    <div class="sheet-grabber"></div>
-    <div class="sheet-header">
-      <h2>Add Clip</h2>
-      <button type="button" class="text-btn" id="addClipCancelBtn">Cancel</button>
-    </div>
-    <div class="sheet-body">
-      <form id="addClipForm">
-        <div class="field">
-          <label for="urlInput">YouTube URL</label>
-          <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="startInput">Start</label>
-            <input type="text" id="startInput" placeholder="0:00" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="endInput">End</label>
-            <input type="text" id="endInput" placeholder="1:30" autocomplete="off">
-          </div>
-        </div>
-        <button type="submit" class="primary-btn" id="addBtn">Add to Queue</button>
-        <div class="status-line" id="addStatus"></div>
-      </form>
-    </div>
-  </div>
+  <div class="app">
 
-  <!-- ============ LIBRARY SHEET ============ -->
-  <div class="sheet-backdrop" id="libraryBackdrop"></div>
-  <div class="sheet" id="librarySheet">
-    <div class="sheet-grabber"></div>
-    <div class="sheet-header">
-      <h2>Clip Library</h2>
-      <button type="button" class="text-btn" id="libraryCloseBtn">Done</button>
-    </div>
-    <div class="sheet-body">
-      <div class="search-field">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-        <input type="text" id="librarySearch" placeholder="Search name or artist" autocomplete="off">
+    <!-- ============ PLAYLISTS SCREEN ============ -->
+    <section class="screen active" id="screen-playlists">
+      <div class="nav-header">
+        <button class="title-switcher" id="playlistTitleBtn" type="button">
+          <h1 id="playlistTitle">Playlists</h1>
+          <svg class="chev-down" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="nav-action" id="addClipBtn" title="Add clip">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </div>
-      <div class="list" id="libraryList"></div>
-    </div>
+
+      <div class="list-meta" id="countLabel"></div>
+      <div class="list" id="queueList"></div>
+    </section>
+
+    <!-- ============ NOW PLAYING SCREEN ============ -->
+    <section class="screen" id="screen-nowplaying">
+      <div class="nav-header">
+        <h1>Now Playing</h1>
+      </div>
+
+      <div class="np-art"><div id="player"></div></div>
+
+      <div class="np-meta">
+        <div class="np-title" id="nowLabel">&mdash;</div>
+        <div class="np-artist" id="nowArtistLabel">&nbsp;</div>
+      </div>
+
+      <div class="np-progress-track" id="clipProgress">
+        <div class="np-progress-fill" id="clipProgressFill"></div>
+      </div>
+      <div class="np-time-row">
+        <span id="elapsedLabel">0:00</span>
+        <span id="durationLabel">0:00</span>
+      </div>
+
+      <div class="np-transport">
+        <button id="prevBtn" title="Previous clip">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M11 6L4 12l7 6V6zM20 6l-7 6 7 6V6z"/></svg>
+        </button>
+        <button id="playBtn" title="Play/Pause">
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button id="nextBtn" title="Next clip">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg>
+        </button>
+      </div>
+
+      <div class="np-toggles">
+        <button id="autoBtn" class="pill-toggle on">Auto-advance</button>
+        <button id="loopBtn" class="pill-toggle">Loop clip</button>
+      </div>
+
+      <div class="np-status" id="statusLabel">loading…</div>
+    </section>
+
   </div>
 
-  <!-- ============ NEW PLAYLIST SHEET ============ -->
-  <div class="sheet-backdrop" id="newPlaylistBackdrop"></div>
-  <div class="sheet" id="newPlaylistSheet">
-    <div class="sheet-grabber"></div>
-    <div class="sheet-header">
-      <h2>New Playlist</h2>
-      <button type="button" class="text-btn" id="newPlaylistCancelBtn">Cancel</button>
-    </div>
-    <div class="sheet-body">
-      <form id="newPlaylistForm">
+</div>
+
+<!-- ============ MINI PLAYER ============ -->
+<div class="mini-player" id="miniPlayer" hidden>
+  <div class="mini-progress" id="miniProgressFill"></div>
+  <img class="thumb" id="miniThumb" alt="">
+  <div class="info">
+    <div class="title" id="miniTitle">&mdash;</div>
+  </div>
+  <button id="miniPlayBtn" title="Play/Pause">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" id="miniPlayIcon"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+  <button id="miniNextBtn" title="Next clip">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 6l7 6-7 6V6zM4 6l7 6-7 6V6z"/></svg>
+  </button>
+</div>
+
+<!-- ============ TAB BAR (mobile) ============ -->
+<nav class="tab-bar">
+  <button class="tab-item active" id="tabPlaylists" data-tab="playlists">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    <span>Playlists</span>
+  </button>
+  <button class="tab-item" id="tabLibrary" data-tab="library">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="14" height="12" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+    <span>Library</span>
+  </button>
+  <button class="tab-item" id="tabNowPlaying" data-tab="nowplaying">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12v0M8 8v8M12 5v14M16 8v8M20 12v0"/></svg>
+    <span>Now Playing</span>
+  </button>
+</nav>
+
+<!-- ============ ADD CLIP SHEET ============ -->
+<div class="sheet-backdrop" id="addClipBackdrop"></div>
+<div class="sheet" id="addClipSheet">
+  <div class="sheet-grabber"></div>
+  <div class="sheet-header">
+    <h2>Add Clip</h2>
+    <button type="button" class="text-btn" id="addClipCancelBtn">Cancel</button>
+  </div>
+  <div class="sheet-body">
+    <form id="addClipForm">
+      <div class="field">
+        <label for="urlInput">YouTube URL</label>
+        <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off">
+      </div>
+      <div class="field-row">
         <div class="field">
-          <label for="newPlaylistInput">Name</label>
-          <input type="text" id="newPlaylistInput" placeholder="Playlist name" autocomplete="off">
+          <label for="startInput">Start</label>
+          <input type="text" id="startInput" placeholder="0:00" autocomplete="off">
         </div>
-        <button type="submit" class="primary-btn">Create</button>
-      </form>
-    </div>
+        <div class="field">
+          <label for="endInput">End</label>
+          <input type="text" id="endInput" placeholder="1:30" autocomplete="off">
+        </div>
+      </div>
+      <button type="submit" class="primary-btn" id="addBtn">Add to Queue</button>
+      <div class="status-line" id="addStatus"></div>
+    </form>
   </div>
+</div>
 
-  <!-- ============ PLAYLIST PICKER SHEET (fallback for many playlists) ============ -->
-  <div class="sheet-backdrop" id="playlistPickerBackdrop"></div>
-  <div class="sheet" id="playlistPickerSheet">
-    <div class="sheet-grabber"></div>
-    <div class="sheet-header">
-      <h2>Playlists</h2>
-      <button type="button" class="text-btn" id="playlistPickerCloseBtn">Done</button>
-    </div>
-    <div class="sheet-body">
-      <div class="list" id="playlistPickerList"></div>
-    </div>
+<!-- ============ LIBRARY SHEET ============ -->
+<div class="sheet-backdrop" id="libraryBackdrop"></div>
+<div class="sheet" id="librarySheet">
+  <div class="sheet-grabber"></div>
+  <div class="sheet-header">
+    <h2>Clip Library</h2>
+    <button type="button" class="text-btn" id="libraryCloseBtn">Done</button>
   </div>
-
-  <!-- ============ ROW ACTIONS SHEET ============ -->
-  <div class="sheet-backdrop" id="actionBackdrop"></div>
-  <div class="sheet" id="actionSheet">
-    <div class="sheet-grabber"></div>
-    <div class="sheet-header">
-      <h2 id="actionSheetTitle">Clip</h2>
-      <button type="button" class="text-btn" id="actionCancelBtn">Cancel</button>
+  <div class="sheet-body">
+    <div class="search-field">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="librarySearch" placeholder="Search name or artist" autocomplete="off">
     </div>
-    <div class="action-list" id="actionList"></div>
+    <div class="list" id="libraryList"></div>
   </div>
+</div>
 
+<!-- ============ NEW PLAYLIST SHEET ============ -->
+<div class="sheet-backdrop" id="newPlaylistBackdrop"></div>
+<div class="sheet" id="newPlaylistSheet">
+  <div class="sheet-grabber"></div>
+  <div class="sheet-header">
+    <h2>New Playlist</h2>
+    <button type="button" class="text-btn" id="newPlaylistCancelBtn">Cancel</button>
+  </div>
+  <div class="sheet-body">
+    <form id="newPlaylistForm">
+      <div class="field">
+        <label for="newPlaylistInput">Name</label>
+        <input type="text" id="newPlaylistInput" placeholder="Playlist name" autocomplete="off">
+      </div>
+      <button type="submit" class="primary-btn">Create</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ PLAYLIST PICKER SHEET (mobile playlist switcher) ============ -->
+<div class="sheet-backdrop" id="playlistPickerBackdrop"></div>
+<div class="sheet" id="playlistPickerSheet">
+  <div class="sheet-grabber"></div>
+  <div class="sheet-header">
+    <h2>Playlists</h2>
+    <button type="button" class="text-btn" id="playlistPickerCloseBtn">Done</button>
+  </div>
+  <div class="sheet-body">
+    <div class="list" id="playlistPickerList"></div>
+    <button type="button" class="list-add-btn" id="pickerNewPlaylistBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>New Playlist</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============ ACTION SHEET (clip row actions + playlist actions) ============ -->
+<div class="sheet-backdrop" id="actionBackdrop"></div>
+<div class="sheet" id="actionSheet">
+  <div class="sheet-grabber"></div>
+  <div class="sheet-header">
+    <h2 id="actionSheetTitle">Clip</h2>
+    <button type="button" class="text-btn" id="actionCancelBtn">Cancel</button>
+  </div>
+  <div class="action-list" id="actionList"></div>
 </div>
 
 <script type="module">
@@ -706,7 +847,6 @@
   const SUPABASE_URL = "https://ebzwftobzslvgwxwztqg.supabase.co";
   const SUPABASE_KEY = "sb_publishable_VQfWQsKmOWRYr4vGw6UTwQ_T9ezfT3b";
   const LS_KEY = "clipPlaylist:lastPlaylistId";
-  const SEGMENTED_MAX = 4;
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -833,26 +973,30 @@
     backdropEl.addEventListener("click", () => { closeSheet(sheetEl, backdropEl); if (onClose) onClose(); });
   }
 
-  // ---------- tabs ----------
+  // ---------- tabs / nav ----------
+
+  function syncNavActiveStates() {
+    const libraryOpen = document.getElementById("librarySheet").classList.contains("open");
+    document.getElementById("tabPlaylists").classList.toggle("active", !libraryOpen && activeTab === "playlists");
+    document.getElementById("tabNowPlaying").classList.toggle("active", !libraryOpen && activeTab === "nowplaying");
+    document.getElementById("tabLibrary").classList.toggle("active", libraryOpen);
+    document.getElementById("sidebarNowPlayingBtn").classList.toggle("active", !libraryOpen && activeTab === "nowplaying");
+    document.getElementById("sidebarLibraryBtn").classList.toggle("active", libraryOpen);
+  }
 
   function switchTab(tab) {
     activeTab = tab;
     document.getElementById("screen-playlists").classList.toggle("active", tab === "playlists");
     document.getElementById("screen-nowplaying").classList.toggle("active", tab === "nowplaying");
-    document.getElementById("tabPlaylists").classList.toggle("active", tab === "playlists");
-    document.getElementById("tabLibrary").classList.toggle("active", tab === "library");
-    document.getElementById("tabNowPlaying").classList.toggle("active", tab === "nowplaying");
+    syncNavActiveStates();
     updateMiniPlayerVisibility();
   }
 
   document.getElementById("tabPlaylists").addEventListener("click", () => switchTab("playlists"));
   document.getElementById("tabNowPlaying").addEventListener("click", () => switchTab("nowplaying"));
-  document.getElementById("tabLibrary").addEventListener("click", () => {
-    document.getElementById("tabLibrary").classList.add("active");
-    document.getElementById("tabPlaylists").classList.toggle("active", activeTab === "playlists");
-    document.getElementById("tabNowPlaying").classList.toggle("active", activeTab === "nowplaying");
-    openLibrarySheet();
-  });
+  document.getElementById("tabLibrary").addEventListener("click", openLibrarySheet);
+  document.getElementById("sidebarNowPlayingBtn").addEventListener("click", () => switchTab("nowplaying"));
+  document.getElementById("sidebarLibraryBtn").addEventListener("click", openLibrarySheet);
 
   // ---------- playlists ----------
 
@@ -862,84 +1006,225 @@
     playlists = data || [];
   }
 
-  function renderPlaylistSwitcher() {
-    const wrap = document.getElementById("switcherWrap");
-    wrap.innerHTML = "";
+  function buildPlaylistRow(p, onSelect) {
+    const row = document.createElement("div");
+    row.className = "playlist-row" + (p.id === currentPlaylistId ? " active" : "");
 
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "playlist-name";
+    nameSpan.textContent = p.name;
+    row.appendChild(nameSpan);
+
+    if (p.id === currentPlaylistId) {
+      const check = document.createElement("span");
+      check.className = "row-check";
+      check.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+      row.appendChild(check);
+    }
+
+    const moreBtn = document.createElement("button");
+    moreBtn.type = "button";
+    moreBtn.className = "row-more-btn";
+    moreBtn.title = "More";
+    moreBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
+    moreBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openPlaylistActions(p, nameSpan);
+    });
+    row.appendChild(moreBtn);
+
+    row.addEventListener("click", () => {
+      if (onSelect) onSelect(p);
+      else switchPlaylist(p.id);
+    });
+
+    return row;
+  }
+
+  function renderSidebarPlaylists() {
+    const list = document.getElementById("sidebarPlaylistList");
+    list.innerHTML = "";
     if (playlists.length === 0) {
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "switcher-row";
-      row.textContent = "No playlists yet";
-      row.disabled = true;
-      wrap.appendChild(row);
-      const addBtn = document.createElement("button");
-      addBtn.type = "button";
-      addBtn.className = "circle-btn";
-      addBtn.title = "New playlist";
-      addBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-      addBtn.addEventListener("click", openNewPlaylistSheet);
-      wrap.appendChild(addBtn);
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.style.padding = "12px 10px";
+      empty.style.textAlign = "left";
+      empty.textContent = "No playlists yet";
+      list.appendChild(empty);
       return;
     }
+    playlists.forEach((p) => list.appendChild(buildPlaylistRow(p)));
+  }
 
-    if (playlists.length <= SEGMENTED_MAX) {
-      const seg = document.createElement("div");
-      seg.className = "segmented";
-      playlists.forEach((p) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "segment" + (p.id === currentPlaylistId ? " active" : "");
-        btn.textContent = p.name;
-        btn.addEventListener("click", () => switchPlaylist(p.id));
-        seg.appendChild(btn);
-      });
-      wrap.appendChild(seg);
-    } else {
-      const current = playlists.find((p) => p.id === currentPlaylistId);
-      const row = document.createElement("button");
-      row.type = "button";
-      row.className = "switcher-row";
-      row.innerHTML =
-        '<span>' + escapeHtml(current ? current.name : "Select playlist") + "</span>" +
-        '<svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
-      row.addEventListener("click", openPlaylistPicker);
-      wrap.appendChild(row);
+  function renderPlaylistPickerList() {
+    const list = document.getElementById("playlistPickerList");
+    list.innerHTML = "";
+    if (playlists.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No playlists yet";
+      list.appendChild(empty);
+      return;
     }
+    playlists.forEach((p) => {
+      list.appendChild(
+        buildPlaylistRow(p, (picked) => {
+          switchPlaylist(picked.id);
+          closeSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
+        })
+      );
+    });
+  }
 
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "circle-btn";
-    addBtn.title = "New playlist";
-    addBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-    addBtn.addEventListener("click", openNewPlaylistSheet);
-    wrap.appendChild(addBtn);
+  function updatePlaylistTitleLabel() {
+    const titleEl = document.getElementById("playlistTitle");
+    const current = playlists.find((p) => p.id === currentPlaylistId);
+    titleEl.textContent = current ? current.name : "Playlists";
+  }
+
+  function refreshPlaylistUI() {
+    renderSidebarPlaylists();
+    renderPlaylistPickerList();
+    updatePlaylistTitleLabel();
   }
 
   function openPlaylistPicker() {
-    const list = document.getElementById("playlistPickerList");
-    list.innerHTML = "";
-    playlists.forEach((p) => {
-      const row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML =
-        '<div class="info"><div class="title">' + escapeHtml(p.name) + "</div></div>" +
-        (p.id === currentPlaylistId
-          ? '<span class="add-check" style="opacity:1"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>'
-          : "");
-      row.addEventListener("click", () => {
-        switchPlaylist(p.id);
-        closeSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
-      });
-      list.appendChild(row);
-    });
+    renderPlaylistPickerList();
     openSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
   }
-
+  document.getElementById("playlistTitleBtn").addEventListener("click", openPlaylistPicker);
   document.getElementById("playlistPickerCloseBtn").addEventListener("click", () =>
     closeSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"))
   );
   wireSheetDismiss(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
+  document.getElementById("pickerNewPlaylistBtn").addEventListener("click", () => {
+    closeSheet(document.getElementById("playlistPickerSheet"), document.getElementById("playlistPickerBackdrop"));
+    openNewPlaylistSheet();
+  });
+  document.getElementById("sidebarNewPlaylistBtn").addEventListener("click", openNewPlaylistSheet);
+
+  // ---------- playlist actions (rename / delete) ----------
+
+  function openPlaylistActions(playlist, nameSpanEl) {
+    document.getElementById("actionSheetTitle").textContent = playlist.name;
+    const list = document.getElementById("actionList");
+    list.innerHTML = "";
+
+    const renameBtn = document.createElement("button");
+    renameBtn.className = "action-btn";
+    renameBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Rename';
+    renameBtn.addEventListener("click", () => {
+      closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+      startPlaylistRename(nameSpanEl, playlist);
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "action-btn danger";
+    deleteBtn.disabled = playlists.length <= 1;
+    deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6"/></svg> Delete Playlist';
+    deleteBtn.addEventListener("click", () => {
+      closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+      deletePlaylist(playlist);
+    });
+
+    list.appendChild(renameBtn);
+    list.appendChild(deleteBtn);
+    openSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+  }
+  document.getElementById("actionCancelBtn").addEventListener("click", () =>
+    closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"))
+  );
+  wireSheetDismiss(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
+
+  function startPlaylistRename(spanEl, playlist) {
+    if (spanEl.querySelector("input")) return;
+    const original = playlist.name;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "inline-rename-input";
+    input.value = original;
+    spanEl.textContent = "";
+    spanEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    let settled = false;
+
+    const trySave = async () => {
+      const val = input.value.trim();
+      if (!val) {
+        input.classList.add("invalid");
+        return false;
+      }
+      settled = true;
+      if (val !== original) {
+        const { error } = await supabase.from("playlists").update({ name: val }).eq("id", playlist.id);
+        if (error) {
+          window.alert("Failed to rename playlist: " + error.message);
+        } else {
+          playlist.name = val;
+        }
+      }
+      refreshPlaylistUI();
+      return true;
+    };
+
+    input.addEventListener("input", () => input.classList.remove("invalid"));
+    input.addEventListener("click", (e) => e.stopPropagation());
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        await trySave();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        settled = true;
+        refreshPlaylistUI();
+      }
+    });
+    input.addEventListener("blur", async () => {
+      if (settled) return;
+      const ok = await trySave();
+      if (!ok) { settled = true; refreshPlaylistUI(); }
+    });
+  }
+
+  async function getClipCountForPlaylist(id) {
+    const { count, error } = await supabase
+      .from("clips")
+      .select("id", { count: "exact", head: true })
+      .eq("playlist_id", id);
+    if (error) {
+      console.error("Failed to count clips", error);
+      return null;
+    }
+    return count || 0;
+  }
+
+  async function deletePlaylist(playlist) {
+    if (playlists.length <= 1) {
+      window.alert("You need at least one playlist — create another before deleting this one.");
+      return;
+    }
+
+    const count = await getClipCountForPlaylist(playlist.id);
+    const countText = count === null ? "its clips" : count + (count === 1 ? " clip" : " clips");
+    const ok = window.confirm('Delete "' + playlist.name + '"? This removes all ' + countText + " in it.");
+    if (!ok) return;
+
+    const { error } = await supabase.from("playlists").delete().eq("id", playlist.id);
+    if (error) {
+      window.alert("Failed to delete playlist: " + error.message);
+      return;
+    }
+
+    playlists = playlists.filter((p) => p.id !== playlist.id);
+
+    if (playlist.id === currentPlaylistId) {
+      await switchPlaylist(playlists[0].id);
+    } else {
+      refreshPlaylistUI();
+    }
+  }
 
   async function loadClipsForCurrentPlaylist() {
     if (!currentPlaylistId) { clips = []; return; }
@@ -981,7 +1266,8 @@
       if (clips.length === 0) document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
     }
 
-    renderPlaylistSwitcher();
+    refreshPlaylistUI();
+    switchTab("playlists");
     renderQueue();
     updateMiniPlayer();
   }
@@ -1145,10 +1431,6 @@
     list.appendChild(delBtn);
     openSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
   }
-  document.getElementById("actionCancelBtn").addEventListener("click", () =>
-    closeSheet(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"))
-  );
-  wireSheetDismiss(document.getElementById("actionSheet"), document.getElementById("actionBackdrop"));
 
   function reorderByIndex(fromIdx, toIdx) {
     const [item] = clips.splice(fromIdx, 1);
@@ -1264,7 +1546,7 @@
     if (player && player.stopVideo) player.stopVideo();
     document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
     document.getElementById("nowLabel").textContent = "—";
-    document.getElementById("nowArtistLabel").textContent = " ";
+    document.getElementById("nowArtistLabel").textContent = " ";
     document.getElementById("elapsedLabel").textContent = "0:00";
     document.getElementById("durationLabel").textContent = "0:00";
     document.getElementById("clipProgressFill").style.width = "0%";
@@ -1278,15 +1560,13 @@
   async function openLibrarySheet() {
     if (!currentPlaylistId) {
       window.alert("Create a playlist first.");
-      document.getElementById("tabLibrary").classList.remove("active");
-      document.getElementById("tabPlaylists").classList.toggle("active", activeTab === "playlists");
-      document.getElementById("tabNowPlaying").classList.toggle("active", activeTab === "nowplaying");
       return;
     }
     const listEl = document.getElementById("libraryList");
     document.getElementById("librarySearch").value = "";
     listEl.innerHTML = '<div class="empty-state">Loading…</div>';
     openSheet(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"));
+    syncNavActiveStates();
     try {
       const { data, error } = await supabase
         .from("clip_library")
@@ -1303,9 +1583,7 @@
 
   function closeLibrarySheet() {
     closeSheet(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"));
-    document.getElementById("tabLibrary").classList.remove("active");
-    document.getElementById("tabPlaylists").classList.toggle("active", activeTab === "playlists");
-    document.getElementById("tabNowPlaying").classList.toggle("active", activeTab === "nowplaying");
+    syncNavActiveStates();
   }
   document.getElementById("libraryCloseBtn").addEventListener("click", closeLibrarySheet);
   wireSheetDismiss(document.getElementById("librarySheet"), document.getElementById("libraryBackdrop"), closeLibrarySheet);
@@ -1636,7 +1914,7 @@
     document.getElementById("miniThumb").src = thumbUrl(c.videoId);
     document.getElementById("miniTitle").textContent = c.artist ? c.artist + " — " + c.name : c.name;
     document.getElementById("nowLabel").textContent = c.name;
-    document.getElementById("nowArtistLabel").textContent = c.artist || " ";
+    document.getElementById("nowArtistLabel").textContent = c.artist || " ";
     mini.hidden = false;
     updateMiniPlayerVisibility();
   }
@@ -1657,14 +1935,14 @@
       console.error("Failed to load playlists", err);
       document.getElementById("statusLabel").textContent = "failed to load playlists: " + err.message;
       dataReady = true;
-      renderPlaylistSwitcher();
+      refreshPlaylistUI();
       renderQueue();
       return;
     }
 
     if (playlists.length === 0) {
       dataReady = true;
-      renderPlaylistSwitcher();
+      refreshPlaylistUI();
       renderQueue();
       document.getElementById("statusLabel").textContent = "no playlists yet — create one above";
       return;
@@ -1673,7 +1951,7 @@
     const saved = localStorage.getItem(LS_KEY);
     currentPlaylistId = playlists.some((p) => p.id === saved) ? saved : playlists[0].id;
     localStorage.setItem(LS_KEY, currentPlaylistId);
-    renderPlaylistSwitcher();
+    refreshPlaylistUI();
 
     await loadClipsForCurrentPlaylist();
     if (clips.length > 0) currentId = clips[0].id;
