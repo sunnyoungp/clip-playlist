@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clip Playlist</title>
+<style>
+  :root {
+    --bg: #14120f;
+    --panel: #1c1a16;
+    --line: #33302a;
+    --amber: #e8a63c;
+    --amber-dim: #7a5a26;
+    --danger: #b5533f;
+    --text: #ece7dc;
+    --text-dim: #9a958a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Courier New", ui-monospace, monospace;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .deck {
+    width: 100%;
+    max-width: 560px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0;
+    color: var(--amber);
+    font-weight: normal;
+  }
+  .header .count {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    margin-bottom: 16px;
+    border: 1px solid var(--line);
+  }
+  #player { width: 100%; height: 100%; }
+  .now-playing {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .now-playing .label { color: var(--amber); }
+  .clip-progress {
+    width: 100%;
+    height: 3px;
+    background: var(--line);
+    margin-bottom: 20px;
+    position: relative;
+    cursor: pointer;
+  }
+  .clip-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--amber);
+  }
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+  .controls button {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text);
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .controls button:hover { border-color: var(--amber-dim); color: var(--amber); }
+  .controls button.play {
+    width: 56px;
+    height: 56px;
+    border-color: var(--amber-dim);
+    font-size: 18px;
+  }
+  .toggle-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .toggle-row button {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .toggle-row button.on { color: var(--amber); border-color: var(--amber-dim); }
+  .queue {
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+  .queue-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 6px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--line);
+  }
+  .queue-item.drag-over { border-top: 1px solid var(--amber); }
+  .queue-item.dragging { opacity: 0.4; }
+  .queue-item:hover { background: var(--panel); }
+  .queue-item .drag-handle {
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: grab;
+    line-height: 1;
+    padding: 4px 2px;
+    user-select: none;
+  }
+  .queue-item .drag-handle:hover { color: var(--amber); }
+  .queue-item .idx {
+    font-size: 11px;
+    color: var(--text-dim);
+    width: 16px;
+    flex-shrink: 0;
+  }
+  .queue-item.active .idx { color: var(--amber); }
+  .queue-item .info { flex: 1; min-width: 0; }
+  .queue-item .name {
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .queue-item.active .name { color: var(--amber); }
+  .queue-item .range {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .queue-item .range .time-edit {
+    cursor: text;
+    border-bottom: 1px dotted var(--text-dim);
+  }
+  .queue-item .range .time-edit:hover { color: var(--amber); border-bottom-color: var(--amber-dim); }
+  .queue-item .range input.time-input {
+    width: 46px;
+    background: var(--bg);
+    border: 1px solid var(--amber-dim);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 1px 3px;
+  }
+  .queue-item .range input.time-input.invalid { border-color: var(--danger); color: var(--danger); }
+  .queue-item .dur {
+    font-size: 11px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .queue-item .row-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .queue-item .row-actions button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 4px 5px;
+    line-height: 1;
+  }
+  .queue-item .row-actions button:hover:not(:disabled) { color: var(--amber); }
+  .queue-item .row-actions button:disabled { opacity: 0.25; cursor: default; }
+  .queue-item .row-actions button.delete:hover:not(:disabled) { color: var(--danger); }
+  .empty-queue {
+    padding: 20px 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .add-clip {
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    margin-top: 20px;
+  }
+  .add-clip .section-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin: 0 0 12px;
+    font-weight: normal;
+  }
+  .add-clip form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .add-clip .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .add-clip .field label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .add-clip .field-row {
+    display: flex;
+    gap: 10px;
+  }
+  .add-clip input {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 9px;
+  }
+  .add-clip input:focus { outline: none; border-color: var(--amber-dim); }
+  .add-clip button[type="submit"] {
+    background: none;
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+  .add-clip button[type="submit"]:hover:not(:disabled) { background: var(--amber-dim); color: var(--bg); }
+  .add-clip button[type="submit"]:disabled { opacity: 0.5; cursor: default; }
+  .add-status {
+    font-size: 11px;
+    color: var(--text-dim);
+    min-height: 14px;
+  }
+  .add-status.error { color: var(--danger); }
+  .add-status.ok { color: var(--amber); }
+  .status {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 20px;
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="header">
+    <h1>Clip playlist</h1>
+    <span class="count" id="countLabel">0 / 0</span>
+  </div>
+
+  <div class="video-wrap">
+    <div id="player"></div>
+  </div>
+
+  <div class="now-playing">
+    <span><span class="label">Now:</span> <span id="nowLabel">&mdash;</span></span>
+    <span id="timeLabel">0:00 / 0:00</span>
+  </div>
+
+  <div class="clip-progress" id="clipProgress">
+    <div class="clip-progress-fill" id="clipProgressFill"></div>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn" title="Previous clip">&#9664;&#9664;</button>
+    <button id="playBtn" class="play" title="Play/Pause">&#9654;</button>
+    <button id="nextBtn" title="Next clip">&#9654;&#9654;</button>
+  </div>
+
+  <div class="toggle-row">
+    <button id="autoBtn" class="on">Auto-advance: on</button>
+    <button id="loopBtn">Loop clip: off</button>
+  </div>
+
+  <div class="queue" id="queue"></div>
+
+  <div class="add-clip">
+    <h2 class="section-label">Add clip</h2>
+    <form id="addClipForm">
+      <div class="field">
+        <label for="urlInput">YouTube URL</label>
+        <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="startInput">Start</label>
+          <input type="text" id="startInput" placeholder="0:00" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="endInput">End</label>
+          <input type="text" id="endInput" placeholder="1:30" autocomplete="off">
+        </div>
+      </div>
+      <button type="submit" id="addBtn">+ Add to queue</button>
+      <div class="add-status" id="addStatus"></div>
+    </form>
+  </div>
+
+  <div class="status" id="statusLabel">loading...</div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const SUPABASE_URL = "https://ebzwftobzslvgwxwztqg.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_VQfWQsKmOWRYr4vGw6UTwQ_T9ezfT3b";
+  const PLAYLIST_ID = "default";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let clips = [];       // { id, name, artist, videoId, start, end, position }
+  let currentId = null; // id of the clip currently loaded in the player
+  let player = null;
+  let apiReady = false;
+  let dataReady = false;
+  let autoAdvance = true;
+  let loopClip = false;
+  let pollTimer = null;
+  let dragSourceIndex = null;
+
+  // ---------- helpers ----------
+
+  function fmt(s) {
+    s = Math.max(0, Math.floor(s));
+    const m = Math.floor(s / 60);
+    const sec = String(s % 60).padStart(2, "0");
+    return m + ":" + sec;
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[ch]));
+  }
+
+  function parseTimeToSeconds(input) {
+    input = String(input ?? "").trim();
+    if (!input) return NaN;
+    if (input.includes(":")) {
+      const parts = input.split(":").map((p) => p.trim());
+      if (parts.some((p) => p === "" || isNaN(Number(p)))) return NaN;
+      let seconds = 0;
+      for (const p of parts) seconds = seconds * 60 + Number(p);
+      return seconds;
+    }
+    const n = Number(input);
+    return isNaN(n) ? NaN : n;
+  }
+
+  function extractVideoId(raw) {
+    const input = String(raw ?? "").trim();
+    try {
+      const u = new URL(input);
+      const host = u.hostname.replace(/^www\./, "");
+      if (host === "youtu.be") {
+        return u.pathname.slice(1).split("/")[0] || null;
+      }
+      if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+        if (u.pathname === "/watch") return u.searchParams.get("v");
+        let m = u.pathname.match(/\/shorts\/([^/?]+)/);
+        if (m) return m[1];
+        m = u.pathname.match(/\/embed\/([^/?]+)/);
+        if (m) return m[1];
+        m = u.pathname.match(/\/live\/([^/?]+)/);
+        if (m) return m[1];
+      }
+    } catch (e) {
+      // not a parseable URL — allow a bare video id
+      if (/^[a-zA-Z0-9_-]{10,12}$/.test(input)) return input;
+    }
+    return null;
+  }
+
+  function splitTitle(title) {
+    const dashPattern = /\s+[-–—]\s+/;
+    const m = title.match(dashPattern);
+    if (m) {
+      const idx = title.search(dashPattern);
+      const artist = title.slice(0, idx).trim();
+      const name = title.slice(idx + m[0].length).trim();
+      if (artist && name) return { name, artist };
+    }
+    return { name: title.trim(), artist: "" };
+  }
+
+  async function fetchOEmbedTitle(videoId) {
+    const watchUrl = "https://www.youtube.com/watch?v=" + encodeURIComponent(videoId);
+    const res = await fetch("https://www.youtube.com/oembed?url=" + encodeURIComponent(watchUrl) + "&format=json");
+    if (!res.ok) throw new Error("oEmbed lookup failed (" + res.status + ")");
+    const data = await res.json();
+    return data.title || "";
+  }
+
+  function rowToClip(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      artist: row.artist || "",
+      videoId: row.video_id,
+      start: Number(row.start_seconds),
+      end: Number(row.end_seconds),
+      position: row.position
+    };
+  }
+
+  function getCurrentIndex() {
+    return clips.findIndex((c) => c.id === currentId);
+  }
+
+  // ---------- rendering ----------
+
+  function renderQueue() {
+    const q = document.getElementById("queue");
+    q.innerHTML = "";
+
+    if (clips.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-queue";
+      empty.textContent = "no clips yet — add one below";
+      q.appendChild(empty);
+    }
+
+    clips.forEach((c, i) => {
+      const row = document.createElement("div");
+      row.className = "queue-item" + (c.id === currentId ? " active" : "");
+      row.dataset.id = c.id;
+
+      const displayName = c.artist ? c.artist + " — " + c.name : c.name;
+
+      row.innerHTML =
+        '<span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>' +
+        '<span class="idx">' + String(i + 1).padStart(2, "0") + "</span>" +
+        '<div class="info">' +
+          '<div class="name">' + escapeHtml(displayName) + "</div>" +
+          '<div class="range">' +
+            '<span class="time-edit" data-field="start">' + fmt(c.start) + "</span>" +
+            " – " +
+            '<span class="time-edit" data-field="end">' + fmt(c.end) + "</span>" +
+          "</div>" +
+        "</div>" +
+        '<span class="dur">' + fmt(c.end - c.start) + "</span>" +
+        '<span class="row-actions">' +
+          '<button class="up" title="Move up"' + (i === 0 ? " disabled" : "") + ">&#9650;</button>" +
+          '<button class="down" title="Move down"' + (i === clips.length - 1 ? " disabled" : "") + ">&#9660;</button>" +
+          '<button class="delete" title="Delete clip">&#10005;</button>' +
+        "</span>";
+
+      // click row -> load clip
+      row.addEventListener("click", () => loadClip(i, true));
+
+      // inline start/end editing
+      row.querySelectorAll(".time-edit").forEach((span) => {
+        span.addEventListener("click", (e) => {
+          e.stopPropagation();
+          startTimeEdit(span, c);
+        });
+      });
+
+      // reorder buttons
+      const upBtn = row.querySelector(".up");
+      const downBtn = row.querySelector(".down");
+      upBtn.addEventListener("click", (e) => { e.stopPropagation(); moveClip(i, -1); });
+      downBtn.addEventListener("click", (e) => { e.stopPropagation(); moveClip(i, 1); });
+
+      // delete
+      row.querySelector(".delete").addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteClip(c.id);
+      });
+
+      // drag and drop (initiated from handle, dropped on row)
+      const handle = row.querySelector(".drag-handle");
+      handle.draggable = true;
+      handle.addEventListener("dragstart", (e) => {
+        e.stopPropagation();
+        dragSourceIndex = i;
+        e.dataTransfer.effectAllowed = "move";
+        try { e.dataTransfer.setData("text/plain", String(c.id)); } catch (err) {}
+        row.classList.add("dragging");
+      });
+      handle.addEventListener("dragend", (e) => {
+        e.stopPropagation();
+        row.classList.remove("dragging");
+        dragSourceIndex = null;
+      });
+      row.addEventListener("dragover", (e) => {
+        if (dragSourceIndex === null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        row.classList.add("drag-over");
+      });
+      row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+      row.addEventListener("drop", (e) => {
+        e.preventDefault();
+        row.classList.remove("drag-over");
+        if (dragSourceIndex === null || dragSourceIndex === i) return;
+        reorderByIndex(dragSourceIndex, i);
+        dragSourceIndex = null;
+      });
+
+      q.appendChild(row);
+    });
+
+    const idx = getCurrentIndex();
+    document.getElementById("countLabel").textContent =
+      clips.length ? (idx + 1) + " / " + clips.length : "0 / 0";
+    document.getElementById("nowLabel").textContent =
+      idx >= 0 ? clips[idx].name : "—";
+  }
+
+  function reorderByIndex(fromIdx, toIdx) {
+    const [item] = clips.splice(fromIdx, 1);
+    clips.splice(toIdx, 0, item);
+    renderQueue();
+    persistOrder();
+  }
+
+  function moveClip(idx, dir) {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= clips.length) return;
+    const [item] = clips.splice(idx, 1);
+    clips.splice(newIdx, 0, item);
+    renderQueue();
+    persistOrder();
+  }
+
+  async function persistOrder() {
+    clips.forEach((c, i) => { c.position = i; });
+    try {
+      await Promise.all(
+        clips.map((c) => supabase.from("clips").update({ position: c.position }).eq("id", c.id))
+      );
+    } catch (err) {
+      console.error("Failed to persist clip order", err);
+    }
+  }
+
+  function startTimeEdit(span, clip) {
+    if (span.querySelector("input")) return; // already editing
+    const field = span.dataset.field; // "start" | "end"
+    const original = fmt(clip[field]);
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "time-input";
+    input.value = original;
+    span.textContent = "";
+    span.appendChild(input);
+    input.focus();
+    input.select();
+
+    let settled = false;
+
+    const trySave = async () => {
+      const val = parseTimeToSeconds(input.value);
+      const other = field === "start" ? clip.end : clip.start;
+      const validNumber = !isNaN(val) && val >= 0;
+      const validOrder = field === "start" ? val < other : val > other;
+      if (!validNumber || !validOrder) {
+        input.classList.add("invalid");
+        return false;
+      }
+      const prev = clip[field];
+      clip[field] = val;
+      const dbField = field === "start" ? "start_seconds" : "end_seconds";
+      const { error } = await supabase.from("clips").update({ [dbField]: val }).eq("id", clip.id);
+      if (error) {
+        console.error("Failed to save time edit", error);
+        clip[field] = prev;
+      }
+      settled = true;
+      renderQueue();
+      return true;
+    };
+
+    input.addEventListener("input", () => input.classList.remove("invalid"));
+    input.addEventListener("click", (e) => e.stopPropagation());
+    input.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        await trySave();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        settled = true;
+        renderQueue();
+      }
+    });
+    input.addEventListener("blur", async () => {
+      if (settled) return;
+      const ok = await trySave();
+      if (!ok) { settled = true; renderQueue(); } // silently revert if left invalid
+    });
+  }
+
+  async function deleteClip(id) {
+    const idx = clips.findIndex((c) => c.id === id);
+    if (idx === -1) return;
+    const clip = clips[idx];
+    const ok = window.confirm('Delete "' + clip.name + '" from the queue?');
+    if (!ok) return;
+
+    const { error } = await supabase.from("clips").delete().eq("id", id);
+    if (error) {
+      window.alert("Failed to delete: " + error.message);
+      return;
+    }
+
+    clips.splice(idx, 1);
+    await persistOrder();
+
+    if (clips.length === 0) {
+      currentId = null;
+      stopAndClearPlayer();
+    } else if (id === currentId) {
+      const newIdx = Math.min(idx, clips.length - 1);
+      loadClip(newIdx, false);
+    }
+    renderQueue();
+  }
+
+  function stopAndClearPlayer() {
+    if (player && player.stopVideo) player.stopVideo();
+    document.getElementById("statusLabel").textContent = "queue is empty — add a clip below";
+    document.getElementById("nowLabel").textContent = "—";
+    document.getElementById("timeLabel").textContent = "0:00 / 0:00";
+    document.getElementById("clipProgressFill").style.width = "0%";
+  }
+
+  // ---------- add clip form ----------
+
+  document.getElementById("addClipForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const statusEl = document.getElementById("addStatus");
+    const addBtn = document.getElementById("addBtn");
+    const urlInput = document.getElementById("urlInput");
+    const startInput = document.getElementById("startInput");
+    const endInput = document.getElementById("endInput");
+
+    statusEl.className = "add-status";
+    statusEl.textContent = "";
+
+    const videoId = extractVideoId(urlInput.value);
+    if (!videoId) {
+      statusEl.className = "add-status error";
+      statusEl.textContent = "couldn't find a video id in that link";
+      return;
+    }
+    const start = parseTimeToSeconds(startInput.value);
+    const end = parseTimeToSeconds(endInput.value);
+    if (isNaN(start) || isNaN(end)) {
+      statusEl.className = "add-status error";
+      statusEl.textContent = "start/end must be seconds or m:ss";
+      return;
+    }
+    if (!(start < end)) {
+      statusEl.className = "add-status error";
+      statusEl.textContent = "start must be before end";
+      return;
+    }
+
+    addBtn.disabled = true;
+    statusEl.className = "add-status";
+    statusEl.textContent = "fetching title…";
+
+    let name = "Clip " + videoId;
+    let artist = "";
+    try {
+      const title = await fetchOEmbedTitle(videoId);
+      if (title) {
+        const split = splitTitle(title);
+        name = split.name;
+        artist = split.artist;
+      }
+    } catch (err) {
+      console.warn("oEmbed lookup failed, using fallback title", err);
+    }
+
+    const nextPosition = clips.length
+      ? Math.max(...clips.map((c) => c.position)) + 1
+      : 0;
+
+    const { data, error } = await supabase
+      .from("clips")
+      .insert({
+        playlist_id: PLAYLIST_ID,
+        position: nextPosition,
+        name,
+        artist: artist || null,
+        video_id: videoId,
+        start_seconds: start,
+        end_seconds: end
+      })
+      .select()
+      .single();
+
+    addBtn.disabled = false;
+
+    if (error) {
+      statusEl.className = "add-status error";
+      statusEl.textContent = "failed to add: " + error.message;
+      return;
+    }
+
+    clips.push(rowToClip(data));
+    if (!currentId) currentId = data.id;
+    statusEl.className = "add-status ok";
+    statusEl.textContent = "added “" + name + "”";
+    urlInput.value = "";
+    startInput.value = "";
+    endInput.value = "";
+    renderQueue();
+    maybeInitPlayer();
+  });
+
+  // ---------- player ----------
+
+  function loadClip(i, autoplay) {
+    if (clips.length === 0) return;
+    if (i < 0) i = clips.length - 1;
+    if (i >= clips.length) {
+      if (autoAdvance) { i = 0; autoplay = false; }
+      else return;
+    }
+    const c = clips[i];
+    currentId = c.id;
+    renderQueue();
+    if (player && player.loadVideoById) {
+      player.loadVideoById({ videoId: c.videoId, startSeconds: c.start });
+      if (!autoplay) player.pauseVideo();
+    }
+  }
+
+  function maybeInitPlayer() {
+    if (!apiReady || !dataReady || player || clips.length === 0) return;
+    let idx = getCurrentIndex();
+    if (idx === -1) { idx = 0; currentId = clips[0].id; }
+    const c = clips[idx];
+    player = new YT.Player("player", {
+      videoId: c.videoId,
+      playerVars: { start: Math.floor(c.start), rel: 0, modestbranding: 1 },
+      events: {
+        onReady: () => {
+          document.getElementById("statusLabel").textContent = "ready — press play";
+          startPolling();
+        },
+        onStateChange: onStateChange
+      }
+    });
+  }
+
+  window.onYouTubeIframeAPIReady = function () {
+    apiReady = true;
+    maybeInitPlayer();
+  };
+
+  function onStateChange(e) {
+    const btn = document.getElementById("playBtn");
+    if (e.data === YT.PlayerState.PLAYING) btn.innerHTML = "&#10073;&#10073;";
+    if (e.data === YT.PlayerState.PAUSED) btn.innerHTML = "&#9654;";
+  }
+
+  function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(() => {
+      if (!player || !player.getCurrentTime) return;
+      const idx = getCurrentIndex();
+      if (idx === -1) return;
+      const c = clips[idx];
+      const t = player.getCurrentTime();
+      const dur = c.end - c.start;
+      const elapsed = Math.max(0, t - c.start);
+      const pct = dur > 0 ? Math.min(100, (elapsed / dur) * 100) : 0;
+      document.getElementById("clipProgressFill").style.width = pct + "%";
+      document.getElementById("timeLabel").textContent = fmt(elapsed) + " / " + fmt(dur);
+
+      if (t >= c.end) {
+        if (loopClip) {
+          player.seekTo(c.start, true);
+        } else if (autoAdvance) {
+          loadClip(idx + 1, true);
+        } else {
+          player.pauseVideo();
+        }
+      }
+    }, 250);
+  }
+
+  document.getElementById("playBtn").addEventListener("click", () => {
+    if (!player || !player.getPlayerState) return;
+    const state = player.getPlayerState();
+    if (state === YT.PlayerState.PLAYING) player.pauseVideo();
+    else player.playVideo();
+  });
+  document.getElementById("nextBtn").addEventListener("click", () => loadClip(getCurrentIndex() + 1, true));
+  document.getElementById("prevBtn").addEventListener("click", () => loadClip(getCurrentIndex() - 1, true));
+  document.getElementById("autoBtn").addEventListener("click", (e) => {
+    autoAdvance = !autoAdvance;
+    e.target.classList.toggle("on", autoAdvance);
+    e.target.textContent = "Auto-advance: " + (autoAdvance ? "on" : "off");
+  });
+  document.getElementById("loopBtn").addEventListener("click", (e) => {
+    loopClip = !loopClip;
+    e.target.classList.toggle("on", loopClip);
+    e.target.textContent = "Loop clip: " + (loopClip ? "on" : "off");
+  });
+  document.getElementById("clipProgress").addEventListener("click", (e) => {
+    if (!player || !player.seekTo) return;
+    const idx = getCurrentIndex();
+    if (idx === -1) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    const c = clips[idx];
+    const target = c.start + pct * (c.end - c.start);
+    player.seekTo(target, true);
+  });
+
+  // ---------- init ----------
+
+  async function init() {
+    document.getElementById("statusLabel").textContent = "loading clips…";
+    try {
+      const { data, error } = await supabase
+        .from("clips")
+        .select("*")
+        .eq("playlist_id", PLAYLIST_ID)
+        .order("position", { ascending: true });
+      if (error) throw error;
+      clips = (data || []).map(rowToClip);
+      if (clips.length > 0) currentId = clips[0].id;
+      document.getElementById("statusLabel").textContent = clips.length
+        ? "ready — press play"
+        : "queue is empty — add a clip below";
+    } catch (err) {
+      console.error("Failed to load clips", err);
+      document.getElementById("statusLabel").textContent = "failed to load clips: " + err.message;
+    }
+    dataReady = true;
+    renderQueue();
+    maybeInitPlayer();
+  }
+
+  init();
+
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
+</script>
+
+</body>
+</html>
