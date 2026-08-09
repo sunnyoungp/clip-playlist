@@ -6,29 +6,36 @@
 <title>Clip Playlist</title>
 <style>
   :root {
-    --bg: #F2F2F7;
+    --bg: #F5F5F7;
     --row: #FFFFFF;
-    --track: rgba(118, 118, 128, 0.12);
-    --text: #000000;
+    --surface: #FFFFFF;
+    --track: rgba(120, 120, 128, 0.1);
+    --hover: rgba(255, 159, 10, 0.06);
+    --active: rgba(255, 159, 10, 0.12);
+    --text: #1C1C1E;
     --text-secondary: #8E8E93;
     --accent: #FF9F0A;
     --danger: #FF3B30;
     --tab-bg: #FFFFFF;
-    --hairline: rgba(0, 0, 0, 0.15);
-    --shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --hairline: rgba(0, 0, 0, 0.1);
+    --shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+    --panel-radius: 16px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #000000;
       --row: #1C1C1E;
-      --track: rgba(118, 118, 128, 0.24);
+      --surface: #1C1C1E;
+      --track: rgba(120, 120, 128, 0.18);
+      --hover: rgba(255, 159, 10, 0.1);
+      --active: rgba(255, 159, 10, 0.16);
       --text: #FFFFFF;
       --text-secondary: #8E8E93;
       --accent: #FF9F0A;
       --danger: #FF3B30;
       --tab-bg: #1C1C1E;
-      --hairline: rgba(255, 255, 255, 0.15);
-      --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      --hairline: rgba(255, 255, 255, 0.14);
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
     }
   }
 
@@ -66,8 +73,8 @@
     top: 0;
   }
   .sidebar-title {
-    font-size: 19px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 600;
     letter-spacing: -0.01em;
     padding: 4px 10px 22px;
   }
@@ -79,16 +86,16 @@
     border: none;
     background: transparent;
     color: var(--text);
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 400;
     padding: 9px 10px;
     border-radius: 8px;
     cursor: pointer;
     text-align: left;
     transition: background 120ms, transform 100ms ease-out;
   }
-  .sidebar-nav-item:hover { background: var(--track); }
-  .sidebar-nav-item.active { background: var(--track); color: var(--accent); }
+  .sidebar-nav-item:hover { background: var(--hover); }
+  .sidebar-nav-item.active { background: var(--active); color: var(--accent); font-weight: 500; }
   .sidebar-nav-item:active { transform: scale(0.99); }
   .sidebar-nav-item svg { flex-shrink: 0; }
   .sidebar-section-label {
@@ -118,7 +125,7 @@
     text-align: left;
     transition: background 120ms, transform 100ms ease-out;
   }
-  .list-add-btn:hover { background: var(--track); }
+  .list-add-btn:hover { background: var(--hover); }
   .list-add-btn:active { transform: scale(0.99); }
 
   /* ---------- playlist rows (shared by sidebar + mobile picker sheet + add-to-playlist picker) ---------- */
@@ -131,14 +138,15 @@
     cursor: pointer;
     transition: background 120ms, transform 100ms ease-out;
   }
-  .playlist-row:hover { background: var(--track); }
-  .playlist-row.active { background: var(--track); }
-  .playlist-row.active .playlist-name { color: var(--accent); font-weight: 600; }
+  .playlist-row:hover { background: var(--hover); }
+  .playlist-row.active { background: var(--active); }
+  .playlist-row.active .playlist-name { color: var(--accent); font-weight: 500; }
   .playlist-row:active { transform: scale(0.99); }
   .playlist-row .playlist-name {
     flex: 1;
     min-width: 0;
-    font-size: 15px;
+    font-size: 14px;
+    font-weight: 400;
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
@@ -158,7 +166,7 @@
     cursor: pointer;
     flex-shrink: 0;
   }
-  .playlist-row .row-more-btn:hover { color: var(--text); background: rgba(120, 120, 128, 0.16); }
+  .playlist-row .row-more-btn:hover { color: var(--text); background: var(--hover); }
   .playlist-row input.inline-rename-input {
     flex: 1;
     min-width: 0;
@@ -201,9 +209,9 @@
     min-width: 0;
   }
   .title-switcher h1 {
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -213,9 +221,9 @@
   .title-switcher .chev-down { color: var(--text-secondary); flex-shrink: 0; margin-top: 5px; }
   .title-switcher:active { opacity: 0.7; }
   .nav-header h1 {
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
     margin: 0;
   }
   .nav-action {
@@ -236,10 +244,10 @@
   .nav-action:active { transform: scale(0.94); }
 
   .section-label {
-    font-size: 15px;
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     color: var(--text-secondary);
     margin: 20px 0 8px;
   }
@@ -255,7 +263,7 @@
     border-radius: 8px;
     transition: transform 100ms ease-out, background 120ms;
   }
-  .row:hover { background: var(--track); }
+  .row:hover { background: var(--hover); }
   .row:active { transform: scale(0.99); }
   .row.drag-over { box-shadow: inset 0 2px 0 var(--accent); }
   .row.dragging { opacity: 0.4; }
@@ -276,7 +284,8 @@
   }
   .row .info { flex: 1; min-width: 0; }
   .row .title {
-    font-size: 17px;
+    font-size: 15px;
+    font-weight: 400;
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
@@ -340,7 +349,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: var(--track);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
     border-radius: 10px;
     padding: 9px 10px;
     margin: 2px 0 8px;
@@ -350,7 +360,7 @@
     border: none;
     background: transparent;
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     flex: 1;
     min-width: 0;
   }
@@ -370,8 +380,8 @@
     margin: 4px 0 14px;
     cursor: pointer;
     color: var(--text);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     box-shadow: var(--shadow);
     transition: transform 100ms ease-out;
   }
@@ -415,8 +425,8 @@
   #playerDock.docked { pointer-events: auto; }
   #playerDock #player, #playerDock iframe { width: 100%; height: 100%; display: block; border: 0; }
   .np-meta { text-align: center; margin: 0 0 18px; }
-  .np-title { font-size: 20px; font-weight: 700; color: var(--text); }
-  .np-artist { font-size: 15px; color: var(--text-secondary); margin-top: 2px; }
+  .np-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .np-artist { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
   .np-progress-track {
     width: 100%;
     height: 4px;
@@ -670,9 +680,10 @@
     text-align: left;
     background: none;
     border: none;
-    border-bottom: 0.5px solid var(--track);
+    border-bottom: 0.5px solid var(--hairline);
     padding: 15px 4px;
-    font-size: 17px;
+    font-size: 15px;
+    font-weight: 400;
     color: var(--text);
     cursor: pointer;
     display: flex;
@@ -682,7 +693,7 @@
   .action-btn:last-child { border-bottom: none; }
   .action-btn.danger { color: var(--danger); }
   .action-btn:disabled { opacity: 0.3; }
-  .action-btn:active:not(:disabled) { background: var(--track); }
+  .action-btn:active:not(:disabled) { background: var(--hover); }
 
   /* ---------- desktop layout (>= 900px) ---------- */
   @media (min-width: 900px) {
@@ -691,10 +702,33 @@
       margin: 0;
       display: flex;
       align-items: stretch;
+      gap: 16px;
+      height: 100vh;
+      box-sizing: border-box;
+      padding: 16px;
+      padding-bottom: 112px;
+      background: var(--bg);
+      overflow: hidden;
     }
-    .sidebar { display: flex; }
+    .sidebar {
+      display: flex;
+      border-right: none;
+      border-radius: var(--panel-radius);
+      box-shadow: var(--shadow);
+      height: auto;
+      min-height: 0;
+      top: 0;
+      overflow-y: auto;
+    }
     .tab-bar { display: none; }
-    .app { flex: 1; min-width: 0; }
+    .app {
+      flex: 1;
+      min-width: 0;
+      background: var(--row);
+      border-radius: var(--panel-radius);
+      box-shadow: var(--shadow);
+      overflow-y: auto;
+    }
     .screen { padding: 0 40px 130px; }
     .title-switcher { cursor: default; }
     .title-switcher .chev-down { display: none; }
@@ -704,7 +738,7 @@
     #screen-library .nav-header {
       margin: 0 -40px 20px;
       padding: 36px 40px 16px;
-      background: linear-gradient(180deg, rgba(255, 159, 10, 0.28) 0%, var(--bg) 100%);
+      background: transparent;
     }
 
     /* column headers above the clip list */
@@ -722,7 +756,7 @@
       color: var(--text-secondary);
       position: sticky;
       top: 0;
-      background: var(--bg);
+      background: var(--row);
       z-index: 5;
     }
     .col-header .col-time-label { text-align: right; }
@@ -743,14 +777,15 @@
     .row .row-num {
       display: block;
       text-align: center;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-secondary);
     }
     .row.active .row-num { color: var(--accent); }
     .row .title { display: none; }
     .row .title-stack { display: block; min-width: 0; }
     .row .title-main {
-      font-size: 15px;
+      font-size: 14px;
+      font-weight: 400;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
@@ -758,7 +793,7 @@
     }
     .row.active .title-main { color: var(--accent); }
     .row .title-artist {
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--text-secondary);
       margin-top: 2px;
       white-space: nowrap;
@@ -768,7 +803,7 @@
     .row .subtitle { display: none; }
     .row .col-date {
       display: block;
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--text-secondary);
       white-space: nowrap;
       overflow: hidden;
@@ -776,7 +811,7 @@
     }
     .row .col-time {
       display: block;
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--text-secondary);
       text-align: right;
       white-space: nowrap;
@@ -785,20 +820,17 @@
     .row .col-time .time-edit:hover { color: var(--accent); }
     .row .col-time input.time-input { width: 44px; }
 
-    /* bottom player bar: three Spotify-style sections spanning the full viewport */
+    /* bottom player bar: three Spotify-style sections, floating as its own card */
     .mini-player {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
       transform: none;
-      width: 100%;
+      width: auto;
       max-width: none;
-      border-radius: 0;
-      border-left: none;
-      border-right: none;
-      border-bottom: none;
+      border-radius: var(--panel-radius);
       padding: 12px 24px;
       column-gap: 16px;
     }
@@ -859,7 +891,9 @@
       max-width: none;
       margin: 0;
       padding: 0 48px;
-      height: 100vh;
+      height: 100%;
+      min-height: 100%;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -868,8 +902,8 @@
     #screen-nowplaying .nav-header { display: none; }
     #screen-nowplaying .np-art { max-width: 640px; margin: 0 0 32px; }
     #screen-nowplaying .np-meta { margin-bottom: 28px; }
-    #screen-nowplaying .np-title { font-size: 30px; }
-    #screen-nowplaying .np-artist { font-size: 17px; margin-top: 4px; }
+    #screen-nowplaying .np-title { font-size: 24px; font-weight: 600; }
+    #screen-nowplaying .np-artist { font-size: 15px; margin-top: 4px; }
     #screen-nowplaying .np-progress-track,
     #screen-nowplaying .np-time-row,
     #screen-nowplaying .np-transport,
