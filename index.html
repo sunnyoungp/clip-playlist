@@ -900,13 +900,13 @@
     #screen-nowplaying.screen.active {
       max-width: none;
       margin: 0;
-      padding: 0 48px;
+      padding: 56px 48px 40px;
       height: 100%;
       min-height: 100%;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
     }
     #screen-nowplaying .nav-header { display: none; }
@@ -1834,7 +1834,7 @@
           const c = clips[0];
           player.loadVideoById({ videoId: c.videoId, startSeconds: c.start });
           player.pauseVideo();
-          document.getElementById("statusLabel").textContent = "ready — press play";
+          document.getElementById("statusLabel").textContent = "";
         } else {
           stopAndClearPlayer();
         }
@@ -2732,7 +2732,7 @@
       playerVars: { start: Math.floor(c.start), rel: 0, modestbranding: 1, autoplay: autoplay ? 1 : 0 },
       events: {
         onReady: () => {
-          document.getElementById("statusLabel").textContent = "ready — press play";
+          document.getElementById("statusLabel").textContent = "";
           startPolling();
           updateMiniPlayer();
         },
@@ -2851,11 +2851,17 @@
     updateMiniPlayerVisibility();
   }
 
+  const desktopLayoutQuery = window.matchMedia("(min-width: 900px)");
+
   function updateMiniPlayerVisibility() {
     const mini = document.getElementById("miniPlayer");
     if (getCurrentIndex() === -1) { mini.hidden = true; return; }
-    mini.hidden = activeTab === "nowplaying";
+    // On desktop the mini player is a persistent bottom bar shown across every
+    // screen (Spotify-style); on mobile Now Playing already has full transport
+    // controls, so the mini bar would be redundant there.
+    mini.hidden = activeTab === "nowplaying" && !desktopLayoutQuery.matches;
   }
+  desktopLayoutQuery.addEventListener("change", updateMiniPlayerVisibility);
 
   // ---------- init ----------
 
